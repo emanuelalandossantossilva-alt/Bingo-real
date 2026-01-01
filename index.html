@@ -6,7 +6,7 @@
     <title>Bingo Real - Live</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #020617; color: #e2e8f0; padding: 10px; margin: 0; padding-bottom: 80px; }
-        .premio-box { display: block; background: linear-gradient(135deg, #b45309, #f59e0b, #facc15, #b45309); color: #fff; text-align: center; padding: 20px; border-radius: 15px; border: 2px solid #fff; margin-bottom: 15px; box-shadow: 0 0 20px rgba(250, 204, 21, 0.5); animation: brilho 2s infinite; }
+        .premio-box { display: block; background: linear-gradient(135deg, #b45309, #f59e0b, #facc15, #b45309); color: #fff; text-align: center; padding: 20px; border-radius: 15px; border: 2px solid #fff; margin-bottom: 15px; box-shadow: 0 0 20px rgba(250, 204, 21, 0.5); animation: brilho 2s infinite; cursor: pointer; }
         @keyframes brilho { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
         .valor-acumulado { font-size: 2.2rem; font-weight: bold; display: block; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
         .card-topo { background: #1e293b; border-radius: 12px; padding: 15px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -17,16 +17,17 @@
         .nav-item { text-align: center; color: #94a3b8; background: none; border: none; font-size: 0.7rem; cursor: pointer; text-transform: uppercase; font-weight: bold; }
         .nav-item.active { color: #3b82f6; }
         .btn-buy { background: #22c55e; color: #fff; border: none; padding: 15px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; text-transform: uppercase; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; box-sizing: border-box; }
-        
-        /* Painel Admin */
-        #painelAdmin { display: none; background: #ef4444; padding: 10px; border-radius: 10px; margin-top: 10px; border: 2px dashed #fff; }
+        #painelAdmin { display: none; background: #ef4444; padding: 15px; border-radius: 10px; margin-top: 10px; border: 2px dashed #fff; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="premio-box" onclick="toggleAdmin()"> <span style="font-size:0.8rem; font-weight:bold; text-transform: uppercase;">💰 SORTEIO EM BREVE 💰</span>
-    <span class="valor-acumulado">ACUMULANDO...</span>
+<div class="premio-box" onclick="logicaAdmin()">
+    <span style="font-size:0.8rem; font-weight:bold; text-transform: uppercase;">💰 SORTEIO EM BREVE 💰</span>
+    <span class="valor-acumulado" id="premioDisplay">ACUMULANDO...</span>
 </div>
 
 <div class="card-topo">
@@ -38,9 +39,9 @@
 </div>
 
 <div id="painelAdmin">
-    <h4 style="margin:0; text-align:center;">PAINEL DO DONO</h4>
-    <input type="number" id="valorAdd" placeholder="Quanto saldo adicionar?">
-    <button onclick="adicionarSaldoManual()" style="width:100%; padding:10px; font-weight:bold; background:#fff; color:#000; border-radius:5px; border:none;">ADICIONAR SALDO AGORA</button>
+    <h4 style="margin:0 0 10px 0;">PAINEL DO DONO</h4>
+    <input type="number" id="valorAdd" placeholder="Valor para adicionar">
+    <button onclick="adicionarSaldoManual()" style="width:100%; padding:10px; font-weight:bold; background:#fff; color:#000; border-radius:5px; border:none; cursor:pointer;">ADICIONAR SALDO</button>
 </div>
 
 <div id="tabBingo" class="tab-content active">
@@ -51,18 +52,18 @@
 
 <div id="tabPix" class="tab-content">
     <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; text-align: center;">
-        <h3 style="color:#32bcad;">DEPOSITAR VIA PIX</h3>
+        <h3 style="color:#32bcad; margin-top:0;">DEPOSITAR VIA PIX</h3>
         <input type="number" id="valorDep" placeholder="Valor R$" value="10">
-        <button onclick="gerarDep()" style="background:#32bcad; color:black; border:none; width:100%; padding:15px; border-radius:8px; font-weight:bold;">PEDIR PIX NO WHATSAPP</button>
+        <button onclick="gerarDep()" style="background:#32bcad; color:black; border:none; width:100%; padding:15px; border-radius:8px; font-weight:bold; cursor:pointer;">PEDIR PIX NO WHATSAPP</button>
     </div>
 </div>
 
 <div id="tabSaque" class="tab-content">
     <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155;">
-        <h3 style="color:#f87171; text-align: center;">SOLICITAR SAQUE</h3>
+        <h3 style="color:#f87171; text-align: center; margin-top:0;">SOLICITAR SAQUE</h3>
         <input type="number" id="valorSaque" placeholder="Valor R$">
         <input type="text" id="pixSaque" placeholder="Sua Chave PIX">
-        <button onclick="solicitarSaque()" style="background:#f87171; color:white; border:none; width:100%; padding:15px; border-radius:8px; font-weight:bold;">CONFIRMAR SAQUE</button>
+        <button onclick="solicitarSaque()" style="background:#f87171; color:white; border:none; width:100%; padding:15px; border-radius:8px; font-weight:bold; cursor:pointer;">CONFIRMAR SAQUE</button>
     </div>
 </div>
 
@@ -74,20 +75,20 @@
 
 <script>
     let saldo = 0.00;
-    let cliques = 0;
-    const MEU_WHATSAPP = "5586995932214";
+    let cliquesAdmin = 0;
+    const WHATSAPP_LINK = "https://wa.me/5586995932214";
 
     function aba(id) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     }
 
-    // Função para mostrar o painel de admin (clique 5 vezes na tela dourada)
-    function toggleAdmin() {
-        cliques++;
-        if(cliques >= 5) {
+    function logicaAdmin() {
+        cliquesAdmin++;
+        if(cliquesAdmin >= 5) {
             document.getElementById('painelAdmin').style.display = 'block';
-            cliques = 0;
+            cliquesAdmin = 0;
         }
     }
 
@@ -95,34 +96,34 @@
         let v = parseFloat(document.getElementById('valorAdd').value);
         if(!isNaN(v)) {
             saldo += v;
-            atualizarSaldo();
+            document.getElementById('saldoDisplay').innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
             document.getElementById('painelAdmin').style.display = 'none';
+            document.getElementById('valorAdd').value = '';
         }
-    }
-
-    function atualizarSaldo() {
-        document.getElementById('saldoDisplay').innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
     }
 
     function comprar() {
         if(saldo >= 2) {
             saldo -= 2;
-            atualizarSaldo();
-            alert("Cartela comprada!");
+            document.getElementById('saldoDisplay').innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
+            alert("Cartela comprada com sucesso!");
         } else {
-            alert("Você não tem saldo! Deposite via WhatsApp.");
+            alert("Saldo insuficiente. Deposite via WhatsApp!");
         }
     }
 
     function gerarDep() {
         let v = document.getElementById('valorDep').value;
-        window.open(`https://wa.me/${MEU_WHATSAPP}?text=Quero depositar R$ ${v}`);
+        let msg = encodeURIComponent(`Quero depositar R$ ${v} no Bingo.`);
+        window.location.href = `${WHATSAPP_LINK}?text=${msg}`;
     }
 
     function solicitarSaque() {
         let v = document.getElementById('valorSaque').value;
         let c = document.getElementById('pixSaque').value;
-        window.open(`https://wa.me/${MEU_WHATSAPP}?text=Quero sacar R$ ${v}. Pix: ${c}`);
+        if(!v || !c) return alert("Preencha o valor e a chave PIX!");
+        let msg = encodeURIComponent(`Quero sacar R$ ${v}. Minha chave PIX é: ${c}`);
+        window.location.href = `${WHATSAPP_LINK}?text=${msg}`;
     }
 </script>
 </body>
