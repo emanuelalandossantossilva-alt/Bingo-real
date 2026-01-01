@@ -3,144 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Live Pro - Arena Real</title>
+    <title>Bingo Real - Live</title>
     <script src="https://sdk.mercadopago.com/js/v2"></script>
     <style>
-        :root { --gold: #facc15; --bg: #020617; --card: #1e293b; --green: #22c55e; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
-
-        /* Faixa Dourada do Acumulado solicitada */
-        .jackpot-banner {
-            background: linear-gradient(90deg, #92400e, var(--gold), #92400e);
-            padding: 15px; border-radius: 15px; text-align: center; margin-bottom: 15px;
-            color: #000; box-shadow: 0 0 25px rgba(250, 204, 21, 0.5);
-            border: 1px solid rgba(255,255,255,0.3);
-        }
-        .jackpot-val { font-size: 2.5rem; font-weight: 900; display: block; letter-spacing: -1px; }
-
-        /* Painel de Controlo */
-        .main-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #334155; text-align: center; }
-        .timer { font-size: 2.5rem; font-weight: 800; color: white; font-family: monospace; }
-        .balance { font-size: 1.2rem; color: var(--gold); font-weight: bold; margin-bottom: 15px; }
-
-        /* Botões de Ação */
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 10px; text-transform: uppercase; transition: 0.3s; }
-        .btn-buy { background: var(--gold); color: #000; }
-        .btn-dep { background: var(--green); color: white; }
-        .btn:active { transform: scale(0.98); }
-
-        /* Modal do Mercado Pago */
-        .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; align-items: center; justify-content: center; }
-        .modal-content { background: #0f172a; padding: 25px; border-radius: 25px; width: 100%; max-width: 400px; border: 1px solid #475569; }
+        /* Sempre vou adicionar no html */
+        body { font-family: 'Segoe UI', sans-serif; background: #020617; color: #e2e8f0; padding: 10px; margin: 0; padding-bottom: 80px; }
         
-        /* Container do Payment Brick para evitar tela branca */
-        #paymentBrick_container { min-height: 350px; } 
+        /* TELA DOURADA - Só aparece no sorteio */
+        .premio-box { 
+            display: none; 
+            background: linear-gradient(135deg, #b45309, #f59e0b, #facc15, #b45309); 
+            color: #fff; text-align: center; padding: 20px; border-radius: 15px; 
+            border: 2px solid #fff; margin-bottom: 15px;
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.5);
+            animation: brilho 2s infinite;
+        }
+        @keyframes brilho { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
+
+        .valor-acumulado { font-size: 2.2rem; font-weight: bold; display: block; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+
+        .card-topo { background: #1e293b; border-radius: 12px; padding: 15px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        /* BARRA DE NAVEGAÇÃO ESTILO SIMONI */
+        .navbar-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #1e293b; display: flex; justify-content: space-around; padding: 12px 0; border-top: 2px solid #334155; z-index: 1000; }
+        .nav-item { text-align: center; color: #94a3b8; background: none; border: none; font-size: 0.7rem; cursor: pointer; text-transform: uppercase; font-weight: bold; }
+        .nav-item.active { color: #3b82f6; }
+
+        .btn-buy { background: #22c55e; color: #fff; border: none; padding: 15px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; text-transform: uppercase; }
+        
+        .num-cartela { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; font-family: monospace; font-weight: bold; font-size: 0.8rem; margin: 2px; border-radius: 50%; background: #334155; border: 1px solid #475569; color: #fff; }
+        .bola-sorteada { background: #facc15 !important; color: #000 !important; border-color: #fff !important; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
 
-    <div class="jackpot-banner">
-        <span style="font-size: 0.8rem; font-weight: 800;">🏆 PRÉMIO ACUMULADO</span>
-        <span class="jackpot-val" id="acumuladoDisplay">R$ 0,00</span>
-    </div>
+<div id="telaDourada" class="premio-box">
+    <span style="font-size:0.8rem; font-weight:bold; text-transform: uppercase;">💰 PRÊMIO FINAL DA RODADA 💰</span>
+    <span class="valor-acumulado" id="premioRevelado">R$ 0,00</span>
+</div>
 
-    <div class="main-card">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-            <div style="text-align: left;">
-                <small style="color: #94a3b8;">SEU SALDO</small>
-                <div class="balance" id="saldoDisplay">R$ 0,00</div>
-            </div>
-            <div style="text-align: right;">
-                <small style="color: #94a3b8;">SORTEIO EM</small>
-                <div class="timer" id="timer">05:00</div>
-            </div>
+<div class="card-topo">
+    <div><span style="font-size:0.6rem; color:#94a3b8; display:block;">SALDO</span><b style="color:#facc15; font-size:1.4rem;" id="saldoDisplay">R$ 0,00</b></div>
+    <button onclick="aba('tabPix')" style="background:#32bcad; border:none; color:#000; padding:8px 12px; border-radius:8px; font-weight:bold;">DEPOSITAR</button>
+</div>
+
+<div id="tabBingo" class="tab-content active">
+    <div id="faseVenda" style="text-align: center;">
+        <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #facc15; margin-bottom: 15px;">
+            <span style="color:#facc15; font-weight:bold; font-size:1.2rem;">ACUMULANDO...</span>
+            <div id="timerGlobal" style="font-size:2rem; font-weight:bold; color:#fff;">02:00</div>
+            <p style="font-size:0.6rem; color:#94a3b8;">O prêmio será revelado no início do bingo!</p>
         </div>
-
-        <button class="btn btn-buy" onclick="comprarCartela()">COMPRAR CARTELA - R$ 2,00</button>
-        <button class="btn btn-dep" onclick="abrirModal()">DEPOSITAR VIA PIX</button>
+        <button class="btn-buy" onclick="comprar()">COMPRAR CARTELA (R$ 2,00)</button>
     </div>
 
-    <div id="modalPix" class="modal">
-        <div class="modal-content">
-            <h3 style="text-align:center; color:var(--gold); margin-bottom:20px;">Gerar Pix de Depósito</h3>
-            <div id="paymentBrick_container"></div>
-            <button onclick="fecharModal()" style="width:100%; background:none; color:#94a3b8; border:none; margin-top:20px; cursor:pointer;">Cancelar</button>
+    <div id="faseSorteio" style="display:none; text-align:center;">
+        <div style="background:#1e293b; padding:20px; border-radius:15px; border: 1px solid #facc15;">
+            <div id="statusSorteio" style="color:#facc15; font-weight:bold; margin-bottom:10px;">SORTEANDO BOLAS (1-50)...</div>
+            <div id="globoBolas" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;"></div>
         </div>
     </div>
+    
+    <div id="minhasCartelasContainer" style="margin-top:20px;"></div>
+</div>
 
-    <script>
-        // 1. CONFIGURAÇÃO DE PRODUÇÃO
-        // Substitua pela sua chave APP_USR-... para dinheiro real
-        const mp = new MercadoPago('TEST-3c8adab0-23a3-4f98-9d6d-9773cc716d86');
-        const bricksBuilder = mp.bricks();
-        
-        let valorAcumulado = 0.00;
+<div id="tabPix" class="tab-content">
+    <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155;">
+        <h3 style="color:#32bcad; text-align: center;">GERAR PIX</h3>
+        <div id="paymentBrick_container"></div>
+    </div>
+</div>
 
-        // 2. REGRA DO ACUMULADO: R$ 2,00 compra -> R$ 1,80 acumula
-        function comprarCartela() {
-            valorAcumulado += 1.80;
-            document.getElementById('acumuladoDisplay').innerText = 
-                valorAcumulado.toLocaleString('pt-br', {style: 'currency', currency: 'BRL'});
-            alert("Cartela comprada! Boa sorte no sorteio.");
+<nav class="navbar-bottom">
+    <button class="nav-item active" onclick="aba('tabBingo')">🎰 BINGO</button>
+    <button class="nav-item" onclick="aba('tabPix')">💰 DEPÓSITO</button>
+</nav>
+
+<script>
+    // TOKEN QUE VOCÊ ENVIOU
+    const mp = new MercadoPago('APP_USR-3f875a4f-aff1-4b7b-902e-4494b11b472d');
+
+    let saldo = 0.00;
+    let acumuladoOculto = 0.00;
+    let tempo = 120;
+    let rodadaIniciada = false;
+
+    function aba(id) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    }
+
+    function comprar() {
+        if(saldo < 2) return alert("Saldo insuficiente! Deposite via PIX.");
+        saldo -= 2;
+        acumuladoOculto += 1.80; // R$ 1,80 vai para o prêmio
+        document.getElementById('saldoDisplay').innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
+        gerarCartela();
+    }
+
+    function gerarCartela() {
+        let nums = [];
+        while(nums.length < 10) {
+            let r = Math.floor(Math.random() * 50) + 1;
+            if(!nums.includes(r)) nums.push(r);
         }
+        nums.sort((a,b) => a-b);
+        document.getElementById('minhasCartelasContainer').innerHTML += `<div style="background:#1e293b; padding:10px; border-radius:10px; margin-bottom:10px; border:1px solid #334155;">
+            <div style="font-size:0.6rem; color:#94a3b8; margin-bottom:5px;">CARTELA ATIVA</div>
+            ${nums.map(n => `<span class="num-cartela" data-n="${n}">${n}</span>`).join('')}
+        </div>`;
+    }
 
-        // 3. CRONÓMETRO DE 5 MINUTOS
-        let tempo = 300;
-        setInterval(() => {
-            let m = Math.floor(tempo / 60);
-            let s = tempo % 60;
-            document.getElementById('timer').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-            if(tempo > 0) tempo--; else tempo = 300;
-        }, 1000);
-
-        // 4. INICIALIZAÇÃO DO PIX REAL
-        function abrirModal() {
-            document.getElementById('modalPix').style.display = 'flex';
-            iniciarPagamento();
+    const cronometro = setInterval(() => {
+        if(rodadaIniciada) return;
+        tempo--;
+        let min = Math.floor(tempo/60);
+        let sec = tempo % 60;
+        document.getElementById('timerGlobal').innerText = `${min}:${sec.toString().padStart(2,'0')}`;
+        if(tempo <= 0) {
+            clearInterval(cronometro);
+            iniciarSorteio();
         }
+    }, 1000);
 
-        function fecharModal() { document.getElementById('modalPix').style.display = 'none'; }
+    function iniciarSorteio() {
+        rodadaIniciada = true;
+        document.getElementById('faseVenda').style.display = 'none';
+        document.getElementById('faseSorteio').style.display = 'block';
+        document.getElementById('telaDourada').style.display = 'block';
+        document.getElementById('premioRevelado').innerText = `R$ ${acumuladoOculto.toFixed(2).replace('.', ',')}`;
+        sortear();
+    }
 
-        async function iniciarPagamento() {
-            // Evita carregar múltiplas vezes se já estiver aberto
-            if (window.paymentBrickController) return;
-
-            window.paymentBrickController = await bricksBuilder.create("payment", "paymentBrick_container", {
-                initialization: {
-                    amount: 10.00, // Valor padrão para teste de depósito
-                },
-                customization: {
-                    paymentMethods: {
-                        bankTransfer: ['pix'], // Foco total no Pix como na demonstração
-                        all: false
-                    },
-                },
-                callbacks: {
-                    onReady: () => {
-                        console.log("Formulário carregado"); // Quando isto ocorre, o cinza desaparece
-                    },
-                    onSubmit: ({ formData }) => {
-                        return new Promise((resolve, reject) => {
-                            // Envia para a sua Edge Function no Supabase onde está o Access Token
-                            fetch("TEST-2683158167668377-123121-59bfae9ffc650221607529fd2d3b391a-485513741", {
-                                method: "POST",
-                                body: JSON.stringify(formData)
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                // Aqui o Mercado Pago exibe o QR Code real
-                                resolve();
-                            })
-                            .catch(e => {
-                                console.error(e);
-                                reject();
-                            });
-                        });
-                    },
-                    onError: (error) => console.error("Erro no Brick:", error),
-                },
-            });
+    async function sortear() {
+        let sorteadas = [];
+        for(let i=0; i<30; i++) {
+            await new Promise(r => setTimeout(r, 2000));
+            let b;
+            do { b = Math.floor(Math.random() * 50) + 1; } while(sorteadas.includes(b));
+            sorteadas.push(b);
+            document.getElementById('globoBolas').innerHTML += `<div class="num-cartela bola-sorteada">${b}</div>`;
+            document.querySelectorAll(`[data-n="${b}"]`).forEach(el => el.style.background = "#22c55e");
         }
-    </script>
+        document.getElementById('statusSorteio').innerText = "FIM DA RODADA!";
+    }
+
+    // Configuração do Mercado Pago
+    const bricksBuilder = mp.bricks();
+    bricksBuilder.create('payment', 'paymentBrick_container', {
+        initialization: { amount: 10, payer: { email: "admin@bingo.com" } },
+        customization: { paymentMethods: { bankTransfer: ['pix'], all: false } },
+        callbacks: {
+            onSubmit: ({ formData }) => {
+                return fetch("https://tsnglgxqvrmvjshehhat.supabase.co/functions/v1/dynamic-endpoint", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData)
+                });
+            }
+        }
+    });
+</script>
 </body>
 </html>
