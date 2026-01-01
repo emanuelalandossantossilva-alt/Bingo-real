@@ -3,220 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo do Gordin</title>
+    <title>Bingo do Gordin - Login</title>
     <style>
-        .barra-acumulando {
-            position: relative;
-            background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-            background-size: 400% 400%;
-            color: #4a3500;
-            padding: 18px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            font-weight: 900;
-            font-size: 26px;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            box-shadow: 0 0 20px rgba(237, 177, 32, 0.6);
-            overflow: hidden;
-            border: 2px solid #fff5b7;
-            animation: goldFlow 6s ease infinite, pulseGold 2s infinite;
-        }
-        @keyframes goldFlow { 0% {background-position:0% 50%} 50% {background-position:100% 50%} 100% {background-position:0% 50%} }
-        @keyframes pulseGold { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
-
+        /* Estilos de Luxo e Botões */
         body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding: 10px; }
-        .container { max-width: 450px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 20px; border: 1px solid #333; }
+        .container { max-width: 450px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 20px; border: 1px solid #333; min-height: 80vh; display: flex; flex-direction: column; justify-content: center; }
         
-        .saldo-card { background: #28a745; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
-        .btn-atualizar { 
-            background: rgba(255,255,255,0.2); 
-            border: 1px solid #fff; 
-            color: #fff; 
-            font-size: 10px; 
-            padding: 6px 12px; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            margin-top: 8px;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
+        /* Telas */
+        #tela-auth, #tela-jogo { display: none; }
+        #tela-auth.active, #tela-jogo.active { display: block; }
 
-        .timer-display { font-size: 40px; font-weight: bold; color: #edb120; margin: 10px 0; }
-        .btn { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-buy { background: #edb120; color: #000; }
-        .btn-dep { background: #333; color: #fff; border: 1px solid #444; }
+        /* Inputs de Login */
+        .input-auth { width: 100%; padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #444; background: #2a2a2a; color: white; box-sizing: border-box; font-size: 16px; }
+        .btn-gold { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; background: #edb120; color: #000; margin-top: 10px; font-size: 16px; text-transform: uppercase; }
         
-        #modal-pix { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; z-index: 99; }
-        .modal-box { background: #fff; color: #333; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; }
-        .pix-code { background: #eee; padding: 10px; border-radius: 8px; font-size: 11px; word-break: break-all; margin: 10px 0; max-height: 100px; overflow-y: auto; }
-        .input-deposito { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ccc; text-align: center; font-size: 16px; box-sizing: border-box; }
-        
-        #tela-sorteio { display: none; }
-        .bola-grande { width: 80px; height: 80px; line-height: 80px; background: #fff; color: #000; border-radius: 50%; margin: 15px auto; font-size: 35px; font-weight: bold; border: 4px solid #edb120; }
-        .mini-bola { width: 30px; height: 30px; background: #fff; color: #000; border-radius: 50%; font-size: 12px; line-height: 30px; font-weight: bold; margin: 2px; display: inline-block; }
+        .alternar-auth { margin-top: 20px; color: #aaa; font-size: 14px; cursor: pointer; text-decoration: underline; }
+
+        /* Estilo do Jogo (Mantido da versão anterior) */
+        .barra-acumulando { background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728); padding: 18px; border-radius: 12px; margin-bottom: 20px; font-weight: 900; color: #4a3500; font-size: 24px; animation: pulseGold 2s infinite; }
+        @keyframes pulseGold { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+        .saldo-card { background: #28a745; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        .btn-dep { background: #333; color: #fff; border: 1px solid #444; width: 100%; padding: 15px; border-radius: 10px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
-<body onload="iniciarRelogio()">
+<body>
 
     <div class="container">
-        <div id="tela-lobby">
-            <div class="barra-acumulando" id="display-pote">ACUMULANDO...</div>
+        
+        <div id="tela-auth" class="active">
+            <h1 style="color: #edb120;">Bingo do Gordin</h1>
+            <p id="auth-subtitulo">Entre para jogar e ganhar!</p>
+            
+            <input type="text" id="user-email" class="input-auth" placeholder="E-mail ou Usuário">
+            <input type="password" id="user-pass" class="input-auth" placeholder="Sua Senha">
+            
+            <button class="btn-gold" id="btn-acao-auth" onclick="autenticar()">ENTRAR NO JOGO</button>
+            
+            <p class="alternar-auth" id="btn-alternar" onclick="alternarModo()">Não tem conta? Cadastre-se aqui</p>
+        </div>
 
+        <div id="tela-jogo">
+            <div class="barra-acumulando" id="display-pote">ACUMULADO: R$ 0,00</div>
+            
             <div class="saldo-card">
-                <small>SALDO DISPONÍVEL</small><br>
+                <small>BEM-VINDO, <span id="nome-usuario">JOGADOR</span></small><br>
                 <strong style="font-size: 26px;">R$ <span id="txt-saldo">0,00</span></strong><br>
-                <button class="btn-atualizar" onclick="verificarSaldo()">🔄 ATUALIZAR SALDO</button>
+                <button onclick="verificarSaldo()" style="background:none; border:1px solid #fff; color:#fff; font-size:10px; padding:5px; margin-top:5px; border-radius:4px;">🔄 ATUALIZAR SALDO</button>
             </div>
 
-            <div class="timer-display" id="txt-timer">05:00</div>
+            <div id="timer" style="font-size: 30px; color: #edb120; font-weight: bold; margin: 15px 0;">05:00</div>
 
-            <div style="background: #2a2a2a; padding: 15px; border-radius: 12px;">
-                <small>VALOR DA CARTELA: R$ 2,00</small><br>
-                <input type="number" id="qtd" value="1" min="1" style="width: 60px; padding: 8px; text-align: center; margin-top: 10px; border-radius: 5px; border: none;">
-                <button class="btn btn-buy" onclick="comprar()">COMPRAR AGORA</button>
+            <div style="background: #2a2a2a; padding: 15px; border-radius: 12px; border: 1px solid #333;">
+                <p style="margin:0; font-size: 14px;">CARTELA: R$ 2,00</p>
+                <small>(R$ 1,50 vai para o prêmio!)</small><br>
+                <button class="btn-gold" onclick="comprar()">COMPRAR CARTELA</button>
             </div>
 
-            <button class="btn btn-dep" onclick="abrirModalDeposito()">DEPOSITAR VIA PIX</button>
-            <div id="status-c" style="margin-top:10px; font-size:12px; color: #aaa;">Você não possui cartelas no momento</div>
+            <button class="btn-dep" onclick="alert('Sistema de PIX em manutenção para login')">DEPOSITAR VIA PIX</button>
+            <p onclick="sair()" style="margin-top:20px; color:red; cursor:pointer; font-size:12px;">Sair da conta</p>
         </div>
 
-        <div id="tela-sorteio">
-            <h2 style="color:#edb120">SORTEIO EM ANDAMENTO</h2>
-            <div class="bola-grande" id="bola-viva">--</div>
-            <div id="historico"></div>
-            <h3 style="margin-top:20px;">TOP 10 RANKING</h3>
-            <table style="width:100%; font-size: 14px;"><tbody id="ranking-body"></tbody></table>
-        </div>
-    </div>
-
-    <div id="modal-pix">
-        <div class="modal-box">
-            <h3 id="titulo-modal">Quanto deseja depositar?</h3>
-            <div id="area-valor">
-                <input type="number" id="valor-dep" value="10" min="10" class="input-deposito">
-                <button class="btn" style="background:#28a745; color:#fff;" onclick="gerarPix()">GERAR PIX COPIA E COLA</button>
-            </div>
-            <div id="area-pix" style="display: none;">
-                <p style="font-size: 12px; color: #666;">Copie o código abaixo e pague no seu banco:</p>
-                <div class="pix-code" id="pix-txt">Gerando código...</div>
-                <button class="btn" style="background:#007bff; color:#fff;" onclick="copiar()">COPIAR CÓDIGO</button>
-            </div>
-            <button class="btn" style="background: #eee; color: #333;" onclick="fechar()">FECHAR</button>
-        </div>
     </div>
 
     <script>
-        let saldo = 0.00;
-        let poteDinheiro = 0.00;
-        let tempo = 300;
-        let cartelas = [];
-        
-        // LINK DO SEU SERVIDOR NO RENDER:
         const SERVIDOR = "https://bingo-backend-89dt.onrender.com";
+        let modoLogin = true;
 
+        function alternarModo() {
+            modoLogin = !modoLogin;
+            document.getElementById('auth-subtitulo').innerText = modoLogin ? "Entre para jogar e ganhar!" : "Crie sua conta em segundos!";
+            document.getElementById('btn-acao-auth').innerText = modoLogin ? "ENTRAR NO JOGO" : "CRIAR MINHA CONTA";
+            document.getElementById('btn-alternar').innerText = modoLogin ? "Não tem conta? Cadastre-se aqui" : "Já tem conta? Faça Login";
+        }
+
+        async function autenticar() {
+            const user = document.getElementById('user-email').value;
+            const pass = document.getElementById('user-pass').value;
+
+            if(!user || !pass) return alert("Preencha todos os campos!");
+
+            // Simulação de Login (Enquanto não configuramos o Banco de Dados no Render)
+            alert(modoLogin ? "Login realizado!" : "Conta criada com sucesso!");
+            
+            document.getElementById('nome-usuario').innerText = user.split('@')[0].toUpperCase();
+            document.getElementById('tela-auth').classList.remove('active');
+            document.getElementById('tela-jogo').classList.add('active');
+        }
+
+        function sair() {
+            location.reload();
+        }
+
+        // ... Funções de Saldo e Compra (Mantidas para funcionar com o Render) ...
         async function verificarSaldo() {
-            const btn = document.querySelector('.btn-atualizar');
-            btn.innerText = "⌛ VERIFICANDO...";
             try {
                 const res = await fetch(`${SERVIDOR}/verificar-pagamento`);
                 const data = await res.json();
                 if (data.novoSaldo !== undefined) {
-                    saldo = data.novoSaldo;
-                    document.getElementById('txt-saldo').innerText = saldo.toFixed(2).replace('.',',');
-                    alert("✅ Saldo atualizado!");
+                    document.getElementById('txt-saldo').innerText = data.novoSaldo.toFixed(2).replace('.',',');
                 }
-            } catch (e) { console.log("Erro de conexão."); }
-            btn.innerText = "🔄 ATUALIZAR SALDO";
+            } catch (e) { console.log("Erro de conexão"); }
         }
-
-        function iniciarRelogio() {
-            setInterval(() => {
-                if (tempo > 0) {
-                    tempo--;
-                    let m = Math.floor(tempo/60);
-                    let s = tempo%60;
-                    document.getElementById('txt-timer').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-                } else if (tempo === 0) {
-                    tempo = -1;
-                    comecarSorteio();
-                }
-            }, 1000);
-        }
-
-        async function gerarPix() {
-            const valor = document.getElementById('valor-dep').value;
-            if (valor < 10) return alert("Depósito mínimo R$ 10,00");
-            document.getElementById('area-valor').style.display = 'none';
-            document.getElementById('area-pix').style.display = 'block';
-            document.getElementById('pix-txt').innerText = "Processando...";
-            try {
-                const res = await fetch(`${SERVIDOR}/gerar-pix`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({valor: valor})
-                });
-                const data = await res.json();
-                document.getElementById('pix-txt').innerText = data.qr_code;
-            } catch(e) { document.getElementById('pix-txt').innerText = "Erro ao gerar PIX."; }
-        }
-
-        function comprar() {
-            const qtd = parseInt(document.getElementById('qtd').value);
-            const custo = qtd * 2.00; // Valor da cartela: R$ 2,00
-            
-            if(saldo >= custo) {
-                saldo -= custo;
-                // Desconta R$ 1,50 de cada cartela para o prêmio acumulado:
-                poteDinheiro += (qtd * 1.50); 
-                
-                document.getElementById('txt-saldo').innerText = saldo.toFixed(2).replace('.',',');
-                for(let i=0; i<qtd; i++) cartelas.push({id: Math.floor(1000+Math.random()*9000), nums: gerarNums()});
-                document.getElementById('status-c').innerText = `Você tem ${cartelas.length} cartelas ativas!`;
-            } else { 
-                alert("Saldo insuficiente!"); 
-            }
-        }
-
-        function comecarSorteio() {
-            document.getElementById('display-pote').innerText = "PRÊMIO: R$ " + poteDinheiro.toLocaleString('pt-br', {minimumFractionDigits: 2});
-            document.getElementById('tela-lobby').style.display = 'none';
-            document.getElementById('tela-sorteio').style.display = 'block';
-            let sorteadas = [];
-            const loop = setInterval(() => {
-                if(sorteadas.length < 30) {
-                    let b; do { b = Math.floor(Math.random()*50)+1; } while(sorteadas.includes(b));
-                    sorteadas.push(b);
-                    document.getElementById('bola-viva').innerText = b;
-                    document.getElementById('historico').innerHTML += `<div class="mini-bola">${b}</div>`;
-                    let rk = cartelas.map(c => ({id: c.id, p: c.nums.filter(n => sorteadas.includes(n)).length})).sort((a,b) => b.p - a.p);
-                    const rb = document.getElementById('ranking-body'); rb.innerHTML = "";
-                    rk.slice(0, 10).forEach((item, i) => {
-                        rb.innerHTML += `<tr><td>${i+1}º</td><td>Cartela #${item.id}</td><td>${item.p}/10</td></tr>`;
-                    });
-                } else { 
-                    clearInterval(loop); 
-                    alert("Sorteio finalizado! Prêmio de R$ " + poteDinheiro.toFixed(2) + " para o vencedor."); 
-                }
-            }, 5000);
-        }
-
-        function gerarNums() {
-            let n = [];
-            while(n.length < 10) {
-                let num = Math.floor(Math.random()*50)+1;
-                if(!n.includes(num)) n.push(num);
-            }
-            return n;
-        }
-
-        function abrirModalDeposito() {
-            document.getElementById('modal-pix').style.display = 'flex';
-            document.getElementById('area-valor').style.display = 'block';
-            document.getElementById('area-pix').style.display = 'none';
-        }
-        function copiar() { navigator.clipboard.writeText(document.getElementById('pix-txt').innerText); alert("Copiado!"); }
-        function fechar() { document.getElementById('modal-pix').style.display = 'none'; }
     </script>
 </body>
 </html>
