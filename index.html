@@ -3,184 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Real - Ranking Real</title>
+    <title>Bingo Real - Emanuel Allan</title>
     <style>
-        body { font-family: 'Arial', sans-serif; background-color: #1a1a1a; color: white; text-align: center; margin: 0; padding: 10px; }
-        .container { max-width: 500px; margin: auto; background: #2a2a2a; padding: 20px; border-radius: 15px; border: 2px solid #edb120; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 50px; text-align: center; }
         
-        .acumulado-container { background: linear-gradient(145deg, #edb120, #b8860b); color: #000; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; font-size: 22px; }
-        .saldo-box { font-size: 26px; color: #28a745; font-weight: bold; margin-bottom: 10px; background: #000; padding: 10px; border-radius: 8px; border: 1px solid #28a745; }
-        .timer-display { font-size: 45px; font-weight: bold; color: #fff; margin: 10px 0; }
+        /* Carteira Real fixa no topo */
+        .carteira { background: #111; padding: 15px; border-bottom: 2px solid #28a745; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .saldo-valor { color: #28a745; font-size: 26px; font-weight: bold; }
 
-        .sessao { background: #333; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
-        input { padding: 12px; border-radius: 5px; border: none; text-align: center; width: 85%; margin-bottom: 10px; font-size: 16px; }
-        
-        .btn-comprar { background: #edb120; color: #000; border: none; padding: 15px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 18px; cursor: pointer; }
-        .btn-deposito { background: #28a745; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
+        /* Painel Dourado do Prêmio */
+        .painel-dourado {
+            background: linear-gradient(135deg, #ffd700, #daa520);
+            color: #000; padding: 25px; margin: 15px; border-radius: 20px;
+            border: 3px solid #fff; box-shadow: 0 0 20px rgba(218, 165, 32, 0.8);
+        }
+        .valor-acumulado { font-size: 42px; font-weight: 900; margin-top: 10px; text-shadow: 1px 1px 0px #fff; }
 
-        /* Sorteio */
-        .bola-gigante { width: 100px; height: 100px; line-height: 100px; background: radial-gradient(circle at 30% 30%, #fff, #ccc); color: #000; font-size: 45px; font-weight: bold; border-radius: 50%; margin: 20px auto; border: 5px solid #edb120; }
-        .bolas-sairam { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 20px; }
-        .bola-mini { width: 35px; height: 35px; line-height: 35px; background: #fff; color: #000; border-radius: 50%; font-size: 15px; font-weight: bold; }
+        /* Grade de Cartelas */
+        .grid-cartelas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; }
+        .cartela { background: #1a1a1a; border: 2px solid #333; border-radius: 12px; padding: 10px; cursor: pointer; transition: 0.2s; }
+        .cartela:active { transform: scale(0.95); border-color: #ffd700; }
+        .cartela-topo { background: #ffd700; color: #000; font-weight: bold; border-radius: 5px; font-size: 14px; padding: 2px; }
+        .cartela-n { font-size: 10px; color: #aaa; margin: 8px 0; }
+        .cartela-preco { color: #28a745; font-weight: bold; font-size: 18px; }
 
-        .ranking-tabela { width: 100%; margin-top: 20px; border-collapse: collapse; }
-        .ranking-tabela th { color: #edb120; padding-bottom: 10px; border-bottom: 1px solid #444; }
-        .ranking-tabela td { padding: 10px; border-bottom: 1px solid #444; font-size: 16px; }
-        
-        #tela-sorteio { display: none; }
+        /* Blocos de Ação */
+        .bloco { background: #111; padding: 20px; border-radius: 15px; margin: 15px; border: 1px solid #333; }
+        input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 10px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; font-size: 16px; }
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 10px; font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 10px; }
+        .btn-pix { background: #ffcc00; color: #000; }
+        .btn-saque { background: #28a745; color: #fff; }
     </style>
 </head>
-<body onload="iniciarContagem()">
+<body>
 
-    <div class="container">
-        <div id="tela-jogo">
-            <div class="acumulado-container">SORTEIO ACUMULADO</div>
-            <div class="saldo-box">R$ <span id="label-saldo">0,00</span></div>
-            <div class="timer-display" id="label-timer">05:00</div>
+    <div class="carteira">
+        <div style="font-size: 12px; color: #888; letter-spacing: 1px;">MINHA CARTEIRA</div>
+        <div class="saldo-valor">R$ <span id="display-saldo">0,00</span></div>
+    </div>
 
-            <div class="sessao">
-                <p>Quantidade de Cartelas:</p>
-                <input type="number" id="input-qtd" value="1" min="1">
-                <button class="btn-comprar" onclick="comprarCartelas()">COMPRAR CARTELAS</button>
-            </div>
+    <div class="painel-dourado">
+        <div style="font-weight: 900; font-size: 20px;">🏆 PRÊMIO DO SORTEIO</div>
+        <div class="valor-acumulado">R$ <span id="display-pote">0,00</span></div>
+        <div style="font-size: 12px; font-weight: bold; margin-top: 5px;">A C U M U L A N D O</div>
+    </div>
 
-            <div class="sessao">
-                <input type="number" id="input-dep" value="10">
-                <button class="btn-deposito" onclick="depositar()">DEPOSITAR VIA PIX</button>
-            </div>
-            <div id="status-c" style="color:#aaa;">0 cartelas ativas</div>
+    <h3 style="color: #ffd700; text-transform: uppercase; font-size: 16px;">🎟️ Escolha uma Cartela (R$ 2,00)</h3>
+    <div class="grid-cartelas">
+        <div class="cartela" onclick="comprarCartela(1)">
+            <div class="cartela-topo">CARTELA #01</div>
+            <div class="cartela-n">04-15-22-38-44<br>51-60-66-70-75</div>
+            <div class="cartela-preco">COMPRAR</div>
         </div>
-
-        <div id="tela-sorteio">
-            <h2 style="color:#edb120;">SORTEIO AO VIVO</h2>
-            <div class="bola-gigante" id="bola-viva">--</div>
-            <div id="grid-bolas" class="bolas-sairam"></div>
-            
-            <h3 style="margin-top:30px;">RANKING DE CARTELAS (TOP 10)</h3>
-            <table class="ranking-tabela">
-                <thead>
-                    <tr><th>Pos</th><th>Cartela ID</th><th>Pontos</th></tr>
-                </thead>
-                <tbody id="corpo-ranking">
-                    </tbody>
-            </table>
+        <div class="cartela" onclick="comprarCartela(2)">
+            <div class="cartela-topo">CARTELA #02</div>
+            <div class="cartela-n">07-13-28-31-49<br>52-59-61-67-74</div>
+            <div class="cartela-preco">COMPRAR</div>
         </div>
     </div>
 
+    <div class="bloco">
+        <div style="color: #ffcc00; font-weight: bold; margin-bottom: 5px;">PIX - DEPÓSITO IMEDIATO</div>
+        <input type="number" id="v-dep" placeholder="Quanto deseja depositar?">
+        <button class="btn btn-pix" onclick="gerarPix()">ADICIONAR SALDO</button>
+    </div>
+
+    <div class="bloco" style="border: 2px solid #28a745;">
+        <div style="color: #28a745; font-weight: bold; margin-bottom: 5px;">SAQUE 90% AUTOMÁTICO</div>
+        <input type="number" id="v-saque" placeholder="Valor do Saque">
+        <input type="text" id="c-pix" placeholder="Sua Chave PIX">
+        <button class="btn btn-saque" onclick="solicitarSaque()">RESGATAR VIA TELEGRAM</button>
+    </div>
+
     <script>
-        let saldo = 0.00;
-        let tempo = 300;
-        let listaCartelas = []; // Aqui ficam as cartelas reais compradas
+        // --- CONFIGURAÇÕES TÉCNICAS DO EMANUEL ---
+        let saldoReal = 0.00;
+        let poteAcumulado = 0.00;
+        const TOKEN_BOT = '8583321522:AAG-98iATZdPMOKgLNJ_L3MGDkg1L2Nf-m0';
+        const SEU_CHAT_ID = '8207380114';
 
-        function iniciarContagem() {
-            setInterval(() => {
-                if (tempo > 0) {
-                    tempo--;
-                    let m = Math.floor(tempo / 60);
-                    let s = tempo % 60;
-                    document.getElementById('label-timer').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-                } else if (tempo === 0) {
-                    tempo = -1; // Trava para não repetir
-                    comecarSorteio();
-                }
-            }, 1000);
-        }
-
-        function comprarCartelas() {
-            const qtd = parseInt(document.getElementById('input-qtd').value);
-            const custo = qtd * 2;
-            if (saldo >= custo) {
-                saldo -= custo;
-                document.getElementById('label-saldo').innerText = saldo.toFixed(2).replace('.', ',');
-                
-                for(let i=0; i < qtd; i++) {
-                    listaCartelas.push({
-                        id: Math.floor(1000 + Math.random() * 9000), // ID de 4 dígitos
-                        numeros: gerarNumeros()
-                    });
-                }
-                document.getElementById('status-c').innerText = `${listaCartelas.length} cartelas ativas!`;
-                alert(qtd + " cartelas compradas!");
-            } else {
-                alert("Saldo insuficiente!");
-            }
-        }
-
-        function gerarNumeros() {
-            let n = [];
-            while(n.length < 10) {
-                let num = Math.floor(Math.random() * 50) + 1;
-                if (!n.includes(num) && ![11,22,33,44].includes(num)) n.push(num);
-            }
-            return n;
-        }
-
-        function comecarSorteio() {
-            document.getElementById('tela-jogo').style.display = 'none';
-            document.getElementById('tela-sorteio').style.display = 'block';
-            
-            let sorteadas = [];
-            const intervalo = setInterval(() => {
-                if (sorteadas.length < 30) {
-                    let bola;
-                    do { bola = Math.floor(Math.random() * 50) + 1; } while (sorteadas.includes(bola));
-                    sorteadas.push(bola);
-                    
-                    document.getElementById('bola-viva').innerText = bola;
-                    document.getElementById('grid-bolas').innerHTML += `<div class="bola-mini">${bola}</div>`;
-                    
-                    atualizarRankingReal(sorteadas);
-                } else {
-                    clearInterval(intervalo);
-                    alert("Fim do Sorteio!");
-                    setTimeout(() => location.reload(), 10000);
-                }
-            }, 5000); // 5 segundos por bola
-        }
-
-        function atualizarRankingReal(bolas) {
-            // Calcula pontos apenas para as cartelas que foram COMPRADAS
-            let ranking = listaCartelas.map(c => {
-                let pontos = c.numeros.filter(n => bolas.includes(n)).length;
-                return { id: c.id, pontos: pontos };
-            });
-
-            // Ordena do maior para o menor
-            ranking.sort((a, b) => b.pontos - a.pontos);
-
-            // Pega apenas as 10 melhores
-            const top10 = ranking.slice(0, 10);
-
-            const corpo = document.getElementById('corpo-ranking');
-            corpo.innerHTML = "";
-            
-            if (top10.length === 0) {
-                corpo.innerHTML = "<tr><td colspan='3'>Nenhuma cartela em jogo</td></tr>";
+        // 1. FUNÇÃO DE COMPRA (REAL: TIRA 2.00 E PÕE 1.80 NO POTE)
+        function comprarCartela(id) {
+            if (saldoReal < 2.00) {
+                alert("Você não tem saldo! Deposite via PIX primeiro.");
                 return;
             }
-
-            top10.forEach((item, idx) => {
-                corpo.innerHTML += `
-                    <tr>
-                        <td>${idx + 1}º</td>
-                        <td>#${item.id}</td>
-                        <td>${item.pontos} / 10</td>
-                    </tr>
-                `;
-            });
+            if (confirm("Confirmar compra da Cartela #" + id + " por R$ 2,00?")) {
+                saldoReal -= 2.00;
+                poteAcumulado += 1.80;
+                atualizarTelas();
+                alert("Cartela #" + id + " comprada com sucesso!");
+            }
         }
 
-        async function depositar() {
-            const v = document.getElementById('input-dep').value;
+        // 2. FUNÇÃO DE DEPÓSITO (SIMULAÇÃO DE ENTRADA DE DINHEIRO)
+        function gerarPix() {
+            const v = parseFloat(document.getElementById('v-dep').value);
+            if (isNaN(v) || v <= 0) return alert("Digite um valor válido.");
+            
+            // Aqui seria o link da SuitPay, mas para você ver funcionando:
+            alert("QR Code Gerado! Após pagar, seu saldo de R$ " + v.toFixed(2) + " cairá aqui.");
+            saldoReal += v; // Simulando que o pagamento caiu de verdade
+            atualizarTelas();
+        }
+
+        // 3. FUNÇÃO DE SAQUE 90% AUTOMÁTICO (AVISA NO SEU TELEGRAM)
+        async function solicitarSaque() {
+            const valorS = parseFloat(document.getElementById('v-saque').value);
+            const chaveP = document.getElementById('c-pix').value;
+
+            if (isNaN(valorS) || valorS < 10) return alert("O saque mínimo é R$ 10,00");
+            if (valorS > saldoReal) return alert("Saldo insuficiente.");
+            if (!chaveP) return alert("Digite sua chave PIX!");
+
+            // Envia a mensagem direto pro seu Telegram
+            const mensagem = `🎰 *PEDIDO DE SAQUE BINGO*\n\n👤 *Dono:* Emanuel Allan\n💰 *Valor:* R$ ${valorS.toFixed(2)}\n🔑 *Chave PIX:* ${chaveP}`;
+            
             try {
-                const res = await fetch("https://bingo-backend-89dt.onrender.com/gerar-pix", {
+                await fetch(`https://api.telegram.org/bot${TOKEN_BOT}/sendMessage`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({valor: v})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: SEU_CHAT_ID,
+                        text: mensagem,
+                        parse_mode: 'Markdown'
+                    })
                 });
-                const data = await res.json();
-                if(data.qr_code) prompt("PIX:", data.qr_code);
-            } catch(e) { alert("Erro de conexão."); }
+
+                saldoReal -= valorS;
+                atualizarTelas();
+                alert("✅ Pedido enviado! O Emanuel recebeu no Telegram e fará o seu PIX.");
+            } catch (e) {
+                alert("Erro ao conectar com o Telegram. Verifique sua internet.");
+            }
+        }
+
+        function atualizarTelas() {
+            document.getElementById('display-saldo').innerText = saldoReal.toLocaleString('pt-br', {minimumFractionDigits: 2});
+            document.getElementById('display-pote').innerText = poteAcumulado.toLocaleString('pt-br', {minimumFractionDigits: 2});
         }
     </script>
 </body>
