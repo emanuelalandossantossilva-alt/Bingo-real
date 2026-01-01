@@ -151,7 +151,7 @@
         if (brickController) brickController.unmount();
         const bricksBuilder = mp.bricks();
         brickController = await bricksBuilder.create('payment', 'paymentBrick_container', {
-            initialization: { amount: 10, payer: { email: "usuario@gmail.com" } }, // E-MAIL ATUALIZADO
+            initialization: { amount: 10, payer: { email: "https://emanuelalandossantossilva-alt.github.io/Bingo-real/" } }, // E-MAIL ATUALIZADO
             customization: { paymentMethods: { bankTransfer: ['pix'], all: false } },
             callbacks: {
                 onSubmit: ({ formData }) => {
