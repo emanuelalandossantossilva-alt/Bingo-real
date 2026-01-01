@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Live Pro - Arena Real</title>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <style>
+        :root { --gold: #facc15; --bg: #020617; --card: #1e293b; --green: #22c55e; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
+
+        /* Faixa Dourada do Acumulado solicitada */
+        .jackpot-banner {
+            background: linear-gradient(90deg, #92400e, var(--gold), #92400e);
+            padding: 15px; border-radius: 15px; text-align: center; margin-bottom: 15px;
+            color: #000; box-shadow: 0 0 25px rgba(250, 204, 21, 0.5);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .jackpot-val { font-size: 2.5rem; font-weight: 900; display: block; letter-spacing: -1px; }
+
+        /* Painel de Controlo */
+        .main-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #334155; text-align: center; }
+        .timer { font-size: 2.5rem; font-weight: 800; color: white; font-family: monospace; }
+        .balance { font-size: 1.2rem; color: var(--gold); font-weight: bold; margin-bottom: 15px; }
+
+        /* Botões de Ação */
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 10px; text-transform: uppercase; transition: 0.3s; }
+        .btn-buy { background: var(--gold); color: #000; }
+        .btn-dep { background: var(--green); color: white; }
+        .btn:active { transform: scale(0.98); }
+
+        /* Modal do Mercado Pago */
+        .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; align-items: center; justify-content: center; }
+        .modal-content { background: #0f172a; padding: 25px; border-radius: 25px; width: 100%; max-width: 400px; border: 1px solid #475569; }
+        
+        /* Container do Payment Brick para evitar tela branca */
+        #paymentBrick_container { min-height: 350px; } 
+    </style>
+</head>
+<body>
+
+    <div class="jackpot-banner">
+        <span style="font-size: 0.8rem; font-weight: 800;">🏆 PRÉMIO ACUMULADO</span>
+        <span class="jackpot-val" id="acumuladoDisplay">R$ 0,00</span>
+    </div>
+
+    <div class="main-card">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <div style="text-align: left;">
+                <small style="color: #94a3b8;">SEU SALDO</small>
+                <div class="balance" id="saldoDisplay">R$ 0,00</div>
+            </div>
+            <div style="text-align: right;">
+                <small style="color: #94a3b8;">SORTEIO EM</small>
+                <div class="timer" id="timer">05:00</div>
+            </div>
+        </div>
+
+        <button class="btn btn-buy" onclick="comprarCartela()">COMPRAR CARTELA - R$ 2,00</button>
+        <button class="btn btn-dep" onclick="abrirModal()">DEPOSITAR VIA PIX</button>
+    </div>
+
+    <div id="modalPix" class="modal">
+        <div class="modal-content">
+            <h3 style="text-align:center; color:var(--gold); margin-bottom:20px;">Gerar Pix de Depósito</h3>
+            <div id="paymentBrick_container"></div>
+            <button onclick="fecharModal()" style="width:100%; background:none; color:#94a3b8; border:none; margin-top:20px; cursor:pointer;">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. CONFIGURAÇÃO DE PRODUÇÃO
+        // Substitua pela sua chave APP_USR-... para dinheiro real
+        const mp = new MercadoPago('TEST-3c8adab0-23a3-4f98-9d6d-9773cc716d86');
+        const bricksBuilder = mp.bricks();
+        
+        let valorAcumulado = 0.00;
+
+        // 2. REGRA DO ACUMULADO: R$ 2,00 compra -> R$ 1,80 acumula
+        function comprarCartela() {
+            valorAcumulado += 1.80;
+            document.getElementById('acumuladoDisplay').innerText = 
+                valorAcumulado.toLocaleString('pt-br', {style: 'currency', currency: 'BRL'});
+            alert("Cartela comprada! Boa sorte no sorteio.");
+        }
+
+        // 3. CRONÓMETRO DE 5 MINUTOS
+        let tempo = 300;
+        setInterval(() => {
+            let m = Math.floor(tempo / 60);
+            let s = tempo % 60;
+            document.getElementById('timer').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            if(tempo > 0) tempo--; else tempo = 300;
+        }, 1000);
+
+        // 4. INICIALIZAÇÃO DO PIX REAL
+        function abrirModal() {
+            document.getElementById('modalPix').style.display = 'flex';
+            iniciarPagamento();
+        }
+
+        function fecharModal() { document.getElementById('modalPix').style.display = 'none'; }
+
+        async function iniciarPagamento() {
+            // Evita carregar múltiplas vezes se já estiver aberto
+            if (window.paymentBrickController) return;
+
+            window.paymentBrickController = await bricksBuilder.create("payment", "paymentBrick_container", {
+                initialization: {
+                    amount: 10.00, // Valor padrão para teste de depósito
+                },
+                customization: {
+                    paymentMethods: {
+                        bankTransfer: ['pix'], // Foco total no Pix como na demonstração
+                        all: false
+                    },
+                },
+                callbacks: {
+                    onReady: () => {
+                        console.log("Formulário carregado"); // Quando isto ocorre, o cinza desaparece
+                    },
+                    onSubmit: ({ formData }) => {
+                        return new Promise((resolve, reject) => {
+                            // Envia para a sua Edge Function no Supabase onde está o Access Token
+                            fetch("TEST-2683158167668377-123121-59bfae9ffc650221607529fd2d3b391a-485513741", {
+                                method: "POST",
+                                body: JSON.stringify(formData)
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                // Aqui o Mercado Pago exibe o QR Code real
+                                resolve();
+                            })
+                            .catch(e => {
+                                console.error(e);
+                                reject();
+                            });
+                        });
+                    },
+                    onError: (error) => console.error("Erro no Brick:", error),
+                },
+            });
+        }
+    </script>
+</body>
+</html>
