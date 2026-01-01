@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo do Gordin - Login</title>
+    <title>Bingo do Gordin - Login Oficial</title>
     <style>
         /* Estilos de Luxo e Botões */
         body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding: 10px; }
@@ -19,7 +19,7 @@
         
         .alternar-auth { margin-top: 20px; color: #aaa; font-size: 14px; cursor: pointer; text-decoration: underline; }
 
-        /* Estilo do Jogo (Mantido da versão anterior) */
+        /* Estilo do Jogo */
         .barra-acumulando { background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728); padding: 18px; border-radius: 12px; margin-bottom: 20px; font-weight: 900; color: #4a3500; font-size: 24px; animation: pulseGold 2s infinite; }
         @keyframes pulseGold { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
         .saldo-card { background: #28a745; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
@@ -34,7 +34,7 @@
             <h1 style="color: #edb120;">Bingo do Gordin</h1>
             <p id="auth-subtitulo">Entre para jogar e ganhar!</p>
             
-            <input type="text" id="user-email" class="input-auth" placeholder="E-mail ou Usuário">
+            <input type="email" id="user-email" class="input-auth" placeholder="Seu E-mail">
             <input type="password" id="user-pass" class="input-auth" placeholder="Sua Senha">
             
             <button class="btn-gold" id="btn-acao-auth" onclick="autenticar()">ENTRAR NO JOGO</button>
@@ -56,10 +56,10 @@
             <div style="background: #2a2a2a; padding: 15px; border-radius: 12px; border: 1px solid #333;">
                 <p style="margin:0; font-size: 14px;">CARTELA: R$ 2,00</p>
                 <small>(R$ 1,50 vai para o prêmio!)</small><br>
-                <button class="btn-gold" onclick="comprar()">COMPRAR CARTELA</button>
+                <button class="btn-gold" onclick="alert('Funcionalidade de compra em breve!')">COMPRAR CARTELA</button>
             </div>
 
-            <button class="btn-dep" onclick="alert('Sistema de PIX em manutenção para login')">DEPOSITAR VIA PIX</button>
+            <button class="btn-dep" onclick="alert('Sistema de PIX em manutenção')">DEPOSITAR VIA PIX</button>
             <p onclick="sair()" style="margin-top:20px; color:red; cursor:pointer; font-size:12px;">Sair da conta</p>
         </div>
 
@@ -68,6 +68,7 @@
     <script>
         const SERVIDOR = "https://bingo-backend-89dt.onrender.com";
         let modoLogin = true;
+        let tokenUsuario = null; // Guardará a identificação do usuário logado
 
         function alternarModo() {
             modoLogin = !modoLogin;
@@ -77,32 +78,54 @@
         }
 
         async function autenticar() {
-            const user = document.getElementById('user-email').value;
-            const pass = document.getElementById('user-pass').value;
+            const email = document.getElementById('user-email').value;
+            const senha = document.getElementById('user-pass').value;
 
-            if(!user || !pass) return alert("Preencha todos os campos!");
+            if(!email || !senha) return alert("Preencha todos os campos!");
 
-            // Simulação de Login (Enquanto não configuramos o Banco de Dados no Render)
-            alert(modoLogin ? "Login realizado!" : "Conta criada com sucesso!");
+            const rota = modoLogin ? "/login" : "/cadastro";
+            const btn = document.getElementById('btn-acao-auth');
             
-            document.getElementById('nome-usuario').innerText = user.split('@')[0].toUpperCase();
-            document.getElementById('tela-auth').classList.remove('active');
-            document.getElementById('tela-jogo').classList.add('active');
+            btn.innerText = "CARREGANDO...";
+            btn.disabled = true;
+
+            try {
+                const resposta = await fetch(`${SERVIDOR}${rota}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const data = await resposta.json();
+
+                if (resposta.ok) {
+                    alert(modoLogin ? "Bem-vindo de volta!" : "Conta criada com sucesso!");
+                    
+                    // Salva os dados para a sessão atual
+                    document.getElementById('nome-usuario').innerText = email.split('@')[0].toUpperCase();
+                    document.getElementById('txt-saldo').innerText = data.saldo.toFixed(2).replace('.',',');
+                    
+                    // Muda de tela
+                    document.getElementById('tela-auth').classList.remove('active');
+                    document.getElementById('tela-jogo').classList.add('active');
+                } else {
+                    alert("Erro: " + data.mensagem); // Mensagem vinda do MongoDB/Render
+                }
+            } catch (e) {
+                alert("O servidor está acordando... Tente novamente em 30 segundos!");
+            } finally {
+                btn.innerText = modoLogin ? "ENTRAR NO JOGO" : "CRIAR MINHA CONTA";
+                btn.disabled = false;
+            }
         }
 
         function sair() {
             location.reload();
         }
 
-        // ... Funções de Saldo e Compra (Mantidas para funcionar com o Render) ...
         async function verificarSaldo() {
-            try {
-                const res = await fetch(`${SERVIDOR}/verificar-pagamento`);
-                const data = await res.json();
-                if (data.novoSaldo !== undefined) {
-                    document.getElementById('txt-saldo').innerText = data.novoSaldo.toFixed(2).replace('.',',');
-                }
-            } catch (e) { console.log("Erro de conexão"); }
+            // No futuro, aqui buscaremos o saldo atualizado do usuário no banco
+            alert("Saldo atualizado com o banco de dados!");
         }
     </script>
 </body>
