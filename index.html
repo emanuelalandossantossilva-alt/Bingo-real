@@ -3,145 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Real - Emanuel Allan</title>
+    <title>BINGO REAL - AUTOMÁTICO</title>
     <style>
-        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 50px; text-align: center; }
-        
-        /* Carteira Real fixa no topo */
-        .carteira { background: #111; padding: 15px; border-bottom: 2px solid #28a745; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .saldo-valor { color: #28a745; font-size: 26px; font-weight: bold; }
-
-        /* Painel Dourado do Prêmio */
-        .painel-dourado {
-            background: linear-gradient(135deg, #ffd700, #daa520);
-            color: #000; padding: 25px; margin: 15px; border-radius: 20px;
-            border: 3px solid #fff; box-shadow: 0 0 20px rgba(218, 165, 32, 0.8);
-        }
-        .valor-acumulado { font-size: 42px; font-weight: 900; margin-top: 10px; text-shadow: 1px 1px 0px #fff; }
-
-        /* Grade de Cartelas */
-        .grid-cartelas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; }
-        .cartela { background: #1a1a1a; border: 2px solid #333; border-radius: 12px; padding: 10px; cursor: pointer; transition: 0.2s; }
-        .cartela:active { transform: scale(0.95); border-color: #ffd700; }
-        .cartela-topo { background: #ffd700; color: #000; font-weight: bold; border-radius: 5px; font-size: 14px; padding: 2px; }
-        .cartela-n { font-size: 10px; color: #aaa; margin: 8px 0; }
-        .cartela-preco { color: #28a745; font-weight: bold; font-size: 18px; }
-
-        /* Blocos de Ação */
-        .bloco { background: #111; padding: 20px; border-radius: 15px; margin: 15px; border: 1px solid #333; }
-        input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 10px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; font-size: 16px; }
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 10px; font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 10px; }
-        .btn-pix { background: #ffcc00; color: #000; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; text-align: center; }
+        .painel-pote { background: linear-gradient(135deg, #ffd700, #daa520); color: #000; padding: 25px; margin: 15px; border-radius: 20px; border: 2px solid #fff; box-shadow: 0 0 20px #daa520; }
+        .carteira { background: #111; padding: 15px; border-bottom: 3px solid #007bff; font-size: 24px; font-weight: bold; color: #007bff; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
+        .cartela { background: #1a1a1a; border: 1px solid #333; padding: 15px; border-radius: 12px; cursor: pointer; }
+        .cartela:hover { border-color: #ffd700; }
+        .btn { width: 90%; padding: 18px; border: none; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 10px; }
+        .btn-deposito { background: #007bff; color: #fff; }
         .btn-saque { background: #28a745; color: #fff; }
+        input { width: 85%; padding: 15px; margin: 10px; border-radius: 10px; border: 1px solid #444; background: #222; color: #fff; }
     </style>
 </head>
 <body>
 
     <div class="carteira">
-        <div style="font-size: 12px; color: #888; letter-spacing: 1px;">MINHA CARTEIRA</div>
-        <div class="saldo-valor">R$ <span id="display-saldo">0,00</span></div>
+        SALDO: R$ <span id="saldo-real">0,00</span>
     </div>
 
-    <div class="painel-dourado">
-        <div style="font-weight: 900; font-size: 20px;">🏆 PRÊMIO DO SORTEIO</div>
-        <div class="valor-acumulado">R$ <span id="display-pote">0,00</span></div>
-        <div style="font-size: 12px; font-weight: bold; margin-top: 5px;">A C U M U L A N D O</div>
+    <div class="painel-pote">
+        <div style="font-weight: 900;">🏆 PRÊMIO DO SORTEIO</div>
+        <div style="font-size: 40px; font-weight: 900;">R$ <span id="pote-valor">0,00</span></div>
     </div>
 
-    <h3 style="color: #ffd700; text-transform: uppercase; font-size: 16px;">🎟️ Escolha uma Cartela (R$ 2,00)</h3>
-    <div class="grid-cartelas">
+    <div class="grid">
         <div class="cartela" onclick="comprarCartela(1)">
-            <div class="cartela-topo">CARTELA #01</div>
-            <div class="cartela-n">04-15-22-38-44<br>51-60-66-70-75</div>
-            <div class="cartela-preco">COMPRAR</div>
+            <div style="background:#ffd700; color:#000; font-weight:bold; border-radius:5px;">CARTELA #01</div>
+            <div style="color:#28a745; font-weight:bold; margin-top:10px;">R$ 2,00</div>
         </div>
         <div class="cartela" onclick="comprarCartela(2)">
-            <div class="cartela-topo">CARTELA #02</div>
-            <div class="cartela-n">07-13-28-31-49<br>52-59-61-67-74</div>
-            <div class="cartela-preco">COMPRAR</div>
+            <div style="background:#ffd700; color:#000; font-weight:bold; border-radius:5px;">CARTELA #02</div>
+            <div style="color:#28a745; font-weight:bold; margin-top:10px;">R$ 2,00</div>
         </div>
     </div>
 
-    <div class="bloco">
-        <div style="color: #ffcc00; font-weight: bold; margin-bottom: 5px;">PIX - DEPÓSITO IMEDIATO</div>
-        <input type="number" id="v-dep" placeholder="Quanto deseja depositar?">
-        <button class="btn btn-pix" onclick="gerarPix()">ADICIONAR SALDO</button>
+    <div style="background:#111; padding:20px; margin:15px; border-radius:20px;">
+        <h3 style="color:#007bff;">DEPOSITAR VIA PIX</h3>
+        <input type="number" id="valor-deposito" placeholder="Valor do Depósito">
+        <button class="btn btn-deposito" onclick="pagarAgora()">GERAR PIX DE VERDADE</button>
     </div>
 
-    <div class="bloco" style="border: 2px solid #28a745;">
-        <div style="color: #28a745; font-weight: bold; margin-bottom: 5px;">SAQUE 90% AUTOMÁTICO</div>
-        <input type="number" id="v-saque" placeholder="Valor do Saque">
+    <div style="background:#111; padding:20px; margin:15px; border-radius:20px; border: 1px solid #28a745;">
+        <h3 style="color:#28a745;">SACAR PARA MEU PIX</h3>
+        <input type="number" id="v-saque" placeholder="Valor">
         <input type="text" id="c-pix" placeholder="Sua Chave PIX">
-        <button class="btn btn-saque" onclick="solicitarSaque()">RESGATAR VIA TELEGRAM</button>
+        <button class="btn btn-saque" onclick="saqueAutomatico()">SAQUE AUTOMÁTICO</button>
     </div>
 
     <script>
-        // --- CONFIGURAÇÕES TÉCNICAS DO EMANUEL ---
-        let saldoReal = 0.00;
-        let poteAcumulado = 0.00;
-        const TOKEN_BOT = '8583321522:AAG-98iATZdPMOKgLNJ_L3MGDkg1L2Nf-m0';
-        const SEU_CHAT_ID = '8207380114';
+        const SERVIDOR = "https://bingo-backend-89dt.onrender.com";
 
-        // 1. FUNÇÃO DE COMPRA (REAL: TIRA 2.00 E PÕE 1.80 NO POTE)
-        function comprarCartela(id) {
-            if (saldoReal < 2.00) {
-                alert("Você não tem saldo! Deposite via PIX primeiro.");
-                return;
-            }
-            if (confirm("Confirmar compra da Cartela #" + id + " por R$ 2,00?")) {
-                saldoReal -= 2.00;
-                poteAcumulado += 1.80;
-                atualizarTelas();
-                alert("Cartela #" + id + " comprada com sucesso!");
+        // 1. PAGAMENTO REAL
+        async function pagarAgora() {
+            const v = document.getElementById('valor-deposito').value;
+            if(!v) return alert("Digite o valor!");
+            // Envia para o seu servidor criar o checkout no Mercado Pago/SuitPay
+            window.location.href = `${SERVIDOR}/checkout?valor=${v}`;
+        }
+
+        // 2. COMPRA E ACÚMULO (1,80)
+        async function comprarCartela(id) {
+            const res = await fetch(`${SERVIDOR}/comprar`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ cartelaId: id })
+            });
+            const dados = await res.json();
+            if(dados.sucesso) {
+                alert("Compra realizada! R$ 1,80 adicionados ao prêmio.");
+                atualizar();
+            } else {
+                alert("Você precisa de saldo real para comprar!");
             }
         }
 
-        // 2. FUNÇÃO DE DEPÓSITO (SIMULAÇÃO DE ENTRADA DE DINHEIRO)
-        function gerarPix() {
-            const v = parseFloat(document.getElementById('v-dep').value);
-            if (isNaN(v) || v <= 0) return alert("Digite um valor válido.");
+        // 3. SAQUE AUTOMÁTICO REAL (SEM TELEGRAM)
+        async function saqueAutomatico() {
+            const v = document.getElementById('v-saque').value;
+            const c = document.getElementById('c-pix').value;
             
-            // Aqui seria o link da SuitPay, mas para você ver funcionando:
-            alert("QR Code Gerado! Após pagar, seu saldo de R$ " + v.toFixed(2) + " cairá aqui.");
-            saldoReal += v; // Simulando que o pagamento caiu de verdade
-            atualizarTelas();
+            const res = await fetch(`${SERVIDOR}/saque-automatico`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ valor: v, chave: c })
+            });
+            
+            const resultado = await res.json();
+            if(resultado.sucesso) {
+                alert("Dinheiro enviado para sua conta!");
+                atualizar();
+            } else {
+                alert("Erro no saque automático: " + resultado.msg);
+            }
         }
 
-        // 3. FUNÇÃO DE SAQUE 90% AUTOMÁTICO (AVISA NO SEU TELEGRAM)
-        async function solicitarSaque() {
-            const valorS = parseFloat(document.getElementById('v-saque').value);
-            const chaveP = document.getElementById('c-pix').value;
-
-            if (isNaN(valorS) || valorS < 10) return alert("O saque mínimo é R$ 10,00");
-            if (valorS > saldoReal) return alert("Saldo insuficiente.");
-            if (!chaveP) return alert("Digite sua chave PIX!");
-
-            // Envia a mensagem direto pro seu Telegram
-            const mensagem = `🎰 *PEDIDO DE SAQUE BINGO*\n\n👤 *Dono:* Emanuel Allan\n💰 *Valor:* R$ ${valorS.toFixed(2)}\n🔑 *Chave PIX:* ${chaveP}`;
-            
+        async function atualizar() {
             try {
-                await fetch(`https://api.telegram.org/bot${TOKEN_BOT}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: SEU_CHAT_ID,
-                        text: mensagem,
-                        parse_mode: 'Markdown'
-                    })
-                });
-
-                saldoReal -= valorS;
-                atualizarTelas();
-                alert("✅ Pedido enviado! O Emanuel recebeu no Telegram e fará o seu PIX.");
-            } catch (e) {
-                alert("Erro ao conectar com o Telegram. Verifique sua internet.");
-            }
+                const res = await fetch(`${SERVIDOR}/status`);
+                const info = await res.json();
+                document.getElementById('saldo-real').innerText = info.saldo.toFixed(2);
+                document.getElementById('pote-valor').innerText = info.pote.toFixed(2);
+            } catch(e) {}
         }
-
-        function atualizarTelas() {
-            document.getElementById('display-saldo').innerText = saldoReal.toLocaleString('pt-br', {minimumFractionDigits: 2});
-            document.getElementById('display-pote').innerText = poteAcumulado.toLocaleString('pt-br', {minimumFractionDigits: 2});
-        }
+        setInterval(atualizar, 5000);
     </script>
 </body>
 </html>
