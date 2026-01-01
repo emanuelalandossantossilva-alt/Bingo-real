@@ -76,7 +76,7 @@
 </nav>
 
 <script>
-    // USANDO SUA PUBLIC KEY
+    // CREDENCIAIS DA SUA CONTA
     const mp = new MercadoPago('APP_USR-3f875a4f-aff1-4b7b-902e-4494b11b472d');
 
     let saldo = 0.00, acumuladoOculto = 0.00, tempo = 120, rodadaIniciada = false;
@@ -100,8 +100,7 @@
         let chave = document.getElementById('pixSaque').value;
         if(!valor || !chave) return alert("Preencha todos os campos!");
         
-        // ENVIA PARA O SEU WHATSAPP (Substitua o número abaixo pelo seu)
-        let fone = "86995932214"; 
+        let fone = "5586995932214"; // SEU NÚMERO CONFIGURADO COM DDD
         let msg = `Olá, solicito saque de R$ ${valor} para a chave PIX: ${chave}`;
         window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`);
     }
@@ -151,7 +150,10 @@
         if (brickController) brickController.unmount();
         const bricksBuilder = mp.bricks();
         brickController = await bricksBuilder.create('payment', 'paymentBrick_container', {
-            initialization: { amount: 10, payer: { email: "https://emanuelalandossantossilva-alt.github.io/Bingo-real/" } }, // E-MAIL ATUALIZADO
+            initialization: { 
+                amount: 10, 
+                payer: { email: "emanntossilva@gmail.com" } // SEU E-MAIL CONFIGURADO
+            },
             customization: { paymentMethods: { bankTransfer: ['pix'], all: false } },
             callbacks: {
                 onSubmit: ({ formData }) => {
