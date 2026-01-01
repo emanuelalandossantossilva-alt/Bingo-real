@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bingo Real - Live</title>
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #020617; color: #e2e8f0; padding: 10px; margin: 0; padding-bottom: 80px; }
         .premio-box { display: block; background: linear-gradient(135deg, #b45309, #f59e0b, #facc15, #b45309); color: #fff; text-align: center; padding: 20px; border-radius: 15px; border: 2px solid #fff; margin-bottom: 15px; box-shadow: 0 0 20px rgba(250, 204, 21, 0.5); animation: brilho 2s infinite; }
@@ -18,18 +17,16 @@
         .nav-item { text-align: center; color: #94a3b8; background: none; border: none; font-size: 0.7rem; cursor: pointer; text-transform: uppercase; font-weight: bold; }
         .nav-item.active { color: #3b82f6; }
         .btn-buy { background: #22c55e; color: #fff; border: none; padding: 15px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; text-transform: uppercase; }
-        .num-cartela { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; font-family: monospace; font-weight: bold; font-size: 0.8rem; margin: 2px; border-radius: 50%; background: #334155; border: 1px solid #475569; color: #fff; }
-        .bola-sorteada { background: #facc15 !important; color: #000 !important; border-color: #fff !important; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
         input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; box-sizing: border-box; }
+        
+        /* Painel Admin */
+        #painelAdmin { display: none; background: #ef4444; padding: 10px; border-radius: 10px; margin-top: 10px; border: 2px dashed #fff; }
     </style>
 </head>
 <body>
 
-<div id="telaDourada" class="premio-box">
-    <span id="labelPremio" style="font-size:0.8rem; font-weight:bold; text-transform: uppercase;">💰 SORTEIO EM BREVE 💰</span>
-    <span class="valor-acumulado" id="premioRevelado">ACUMULANDO...</span>
+<div class="premio-box" onclick="toggleAdmin()"> <span style="font-size:0.8rem; font-weight:bold; text-transform: uppercase;">💰 SORTEIO EM BREVE 💰</span>
+    <span class="valor-acumulado">ACUMULANDO...</span>
 </div>
 
 <div class="card-topo">
@@ -40,32 +37,32 @@
     </div>
 </div>
 
+<div id="painelAdmin">
+    <h4 style="margin:0; text-align:center;">PAINEL DO DONO</h4>
+    <input type="number" id="valorAdd" placeholder="Quanto saldo adicionar?">
+    <button onclick="adicionarSaldoManual()" style="width:100%; padding:10px; font-weight:bold; background:#fff; color:#000; border-radius:5px; border:none;">ADICIONAR SALDO AGORA</button>
+</div>
+
 <div id="tabBingo" class="tab-content active">
-    <div id="faseVenda" style="text-align: center;">
-        <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; margin-bottom: 15px;">
-            <div id="timerGlobal" style="font-size:2rem; font-weight:bold; color:#fff;">02:00</div>
-        </div>
+    <div style="text-align: center; background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155;">
         <button class="btn-buy" onclick="comprar()">COMPRAR CARTELA (R$ 2,00)</button>
     </div>
-    <div id="faseSorteio" style="display:none; text-align:center;">
-        <div id="globoBolas" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;"></div>
-    </div>
-    <div id="minhasCartelasContainer" style="margin-top:20px;"></div>
 </div>
 
 <div id="tabPix" class="tab-content">
-    <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155;">
-        <h3 style="color:#32bcad; text-align: center; margin-top:0;">DEPOSITAR VIA PIX</h3>
-        <div id="paymentBrick_container"></div>
+    <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; text-align: center;">
+        <h3 style="color:#32bcad;">DEPOSITAR VIA PIX</h3>
+        <input type="number" id="valorDep" placeholder="Valor R$" value="10">
+        <button onclick="gerarDep()" style="background:#32bcad; color:black; border:none; width:100%; padding:15px; border-radius:8px; font-weight:bold;">PEDIR PIX NO WHATSAPP</button>
     </div>
 </div>
 
 <div id="tabSaque" class="tab-content">
     <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155;">
-        <h3 style="color:#f87171; text-align: center; margin-top:0;">SOLICITAR SAQUE</h3>
+        <h3 style="color:#f87171; text-align: center;">SOLICITAR SAQUE</h3>
         <input type="number" id="valorSaque" placeholder="Valor R$">
         <input type="text" id="pixSaque" placeholder="Sua Chave PIX">
-        <button onclick="solicitarSaque()" style="background:#f87171; color:white; border:none; width:100%; padding:15px; border-radius:8px; font-weight:bold; cursor:pointer;">CONFIRMAR SAQUE</button>
+        <button onclick="solicitarSaque()" style="background:#f87171; color:white; border:none; width:100%; padding:15px; border-radius:8px; font-weight:bold;">CONFIRMAR SAQUE</button>
     </div>
 </div>
 
@@ -76,91 +73,56 @@
 </nav>
 
 <script>
-    // CREDENCIAIS DA SUA CONTA
-    const mp = new MercadoPago('APP_USR-3f875a4f-aff1-4b7b-902e-4494b11b472d');
-
-    let saldo = 0.00, acumuladoOculto = 0.00, tempo = 120, rodadaIniciada = false;
+    let saldo = 0.00;
+    let cliques = 0;
+    const MEU_WHATSAPP = "5586995932214";
 
     function aba(id) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        if(id === 'tabPix') renderizarPix();
+    }
+
+    // Função para mostrar o painel de admin (clique 5 vezes na tela dourada)
+    function toggleAdmin() {
+        cliques++;
+        if(cliques >= 5) {
+            document.getElementById('painelAdmin').style.display = 'block';
+            cliques = 0;
+        }
+    }
+
+    function adicionarSaldoManual() {
+        let v = parseFloat(document.getElementById('valorAdd').value);
+        if(!isNaN(v)) {
+            saldo += v;
+            atualizarSaldo();
+            document.getElementById('painelAdmin').style.display = 'none';
+        }
+    }
+
+    function atualizarSaldo() {
+        document.getElementById('saldoDisplay').innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
     }
 
     function comprar() {
-        if(saldo < 2) return alert("Saldo insuficiente!");
-        saldo -= 2; acumuladoOculto += 1.80;
-        document.getElementById('saldoDisplay').innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
-        gerarCartela();
+        if(saldo >= 2) {
+            saldo -= 2;
+            atualizarSaldo();
+            alert("Cartela comprada!");
+        } else {
+            alert("Você não tem saldo! Deposite via WhatsApp.");
+        }
+    }
+
+    function gerarDep() {
+        let v = document.getElementById('valorDep').value;
+        window.open(`https://wa.me/${MEU_WHATSAPP}?text=Quero depositar R$ ${v}`);
     }
 
     function solicitarSaque() {
-        let valor = document.getElementById('valorSaque').value;
-        let chave = document.getElementById('pixSaque').value;
-        if(!valor || !chave) return alert("Preencha todos os campos!");
-        
-        let fone = "5586995932214"; // SEU NÚMERO CONFIGURADO COM DDD
-        let msg = `Olá, solicito saque de R$ ${valor} para a chave PIX: ${chave}`;
-        window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`);
-    }
-
-    function gerarCartela() {
-        let nums = [];
-        while(nums.length < 10) {
-            let r = Math.floor(Math.random() * 50) + 1;
-            if(!nums.includes(r)) nums.push(r);
-        }
-        nums.sort((a,b) => a-b);
-        document.getElementById('minhasCartelasContainer').innerHTML += `<div style="background:#1e293b; padding:10px; border-radius:10px; margin-bottom:10px; border:1px solid #334155;">
-            ${nums.map(n => `<span class="num-cartela" data-n="${n}">${n}</span>`).join('')}
-        </div>`;
-    }
-
-    setInterval(() => {
-        if(rodadaIniciada) return;
-        tempo--;
-        let min = Math.floor(tempo/60), sec = tempo % 60;
-        document.getElementById('timerGlobal').innerText = `${min}:${sec.toString().padStart(2,'0')}`;
-        if(tempo <= 0) iniciarSorteio();
-    }, 1000);
-
-    function iniciarSorteio() {
-        rodadaIniciada = true;
-        document.getElementById('faseVenda').style.display = 'none';
-        document.getElementById('faseSorteio').style.display = 'block';
-        document.getElementById('labelPremio').innerText = "💰 PRÊMIO REVELADO 💰";
-        document.getElementById('premioRevelado').innerText = `R$ ${acumuladoOculto.toFixed(2).replace('.', ',')}`;
-        sortear();
-    }
-
-    async function sortear() {
-        let sorteadas = [];
-        for(let i=0; i<30; i++) {
-            await new Promise(r => setTimeout(r, 2000));
-            let b; do { b = Math.floor(Math.random() * 50) + 1; } while(sorteadas.includes(b));
-            sorteadas.push(b);
-            document.getElementById('globoBolas').innerHTML += `<div class="num-cartela bola-sorteada">${b}</div>`;
-            document.querySelectorAll(`[data-n="${b}"]`).forEach(el => el.style.background = "#22c55e");
-        }
-    }
-
-    let brickController;
-    async function renderizarPix() {
-        if (brickController) brickController.unmount();
-        const bricksBuilder = mp.bricks();
-        brickController = await bricksBuilder.create('payment', 'paymentBrick_container', {
-            initialization: { 
-                amount: 10, 
-                payer: { email: "emanntossilva@gmail.com" } // SEU E-MAIL CONFIGURADO
-            },
-            customization: { paymentMethods: { bankTransfer: ['pix'], all: false } },
-            callbacks: {
-                onSubmit: ({ formData }) => {
-                    return new Promise(() => {});
-                }
-            }
-        });
+        let v = document.getElementById('valorSaque').value;
+        let c = document.getElementById('pixSaque').value;
+        window.open(`https://wa.me/${MEU_WHATSAPP}?text=Quero sacar R$ ${v}. Pix: ${c}`);
     }
 </script>
 </body>
