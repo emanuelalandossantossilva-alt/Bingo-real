@@ -3,173 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Real - Compras Reais</title>
+    <title>Bingo Real - Multi-Cartelas</title>
     <style>
         body { font-family: 'Arial', sans-serif; background-color: #1a1a1a; color: white; text-align: center; margin: 0; padding: 20px; }
         .container { max-width: 500px; margin: auto; background: #2a2a2a; padding: 20px; border-radius: 15px; border: 2px solid #edb120; }
         
-        /* Banner Acumulado */
         .acumulado-container { background: linear-gradient(145deg, #edb120, #b8860b); color: #000; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; font-size: 22px; }
+        .saldo-box { font-size: 24px; color: #28a745; font-weight: bold; margin-bottom: 10px; background: #000; padding: 10px; border-radius: 8px; border: 1px solid #28a745; }
+        .timer-display { font-size: 40px; font-weight: bold; color: #fff; margin: 10px 0; }
+
+        /* Estilo da Compra */
+        .compra-area { background: #333; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .input-qtd { width: 60px; padding: 10px; font-size: 18px; text-align: center; border-radius: 5px; border: none; margin-bottom: 10px; }
+        .btn-comprar { background: #edb120; color: #000; border: none; padding: 15px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 18px; cursor: pointer; }
         
-        .saldo-box { font-size: 24px; color: #28a745; font-weight: bold; margin-bottom: 10px; background: #000; padding: 10px; border-radius: 8px; }
-        .timer-display { font-size: 40px; font-weight: bold; color: #ff4444; margin: 10px 0; }
+        /* Listagem de Cartelas */
+        .cartelas-container { max-height: 300px; overflow-y: auto; margin-top: 20px; padding: 10px; }
+        .cartela-item { background: #fff; color: #000; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #edb120; }
+        .grid-nums { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 5px; }
+        .n-box { background: #eee; border: 1px solid #ccc; padding: 5px; font-weight: bold; font-size: 14px; border-radius: 3px; }
 
-        /* Telas */
-        #tela-jogo { display: block; }
-        #tela-sorteio { display: none; }
-
-        /* Botões */
-        .btn-comprar { background: #edb120; color: #000; border: none; padding: 18px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 20px; cursor: pointer; box-shadow: 0 4px 0 #b8860b; }
-        .btn-comprar:active { transform: translateY(2px); box-shadow: 0 2px 0 #b8860b; }
-        
-        /* Cartela */
-        .cartela-area { background: #fff; color: #000; padding: 15px; border-radius: 10px; margin-top: 20px; border: 3px solid #edb120; }
-        .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
-        .num-cartela { background: #eee; border: 1px solid #ccc; padding: 10px; font-weight: bold; border-radius: 5px; font-size: 18px; }
-
-        /* Financeiro */
-        .caixa { margin-top: 30px; border-top: 1px solid #444; padding-top: 20px; }
-        input { width: 80%; padding: 12px; margin-bottom: 10px; border-radius: 5px; border: none; text-align: center; font-size: 16px; }
-        .btn-pix { background: #28a745; color: white; border: none; padding: 12px; width: 85%; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .financeiro { margin-top: 20px; padding-top: 20px; border-top: 1px solid #444; }
+        input[type="number"], input[type="text"] { width: 85%; padding: 12px; margin: 5px 0; border-radius: 5px; border: none; text-align: center; }
+        .btn-pix { background: #28a745; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
     </style>
 </head>
-<body onload="iniciarTimer()">
+<body onload="iniciar()">
 
     <div class="container">
-        <div id="tela-jogo">
+        <div id="tela-principal">
             <div class="acumulado-container">ACUMULANDO...</div>
-            <div class="saldo-box">SALDO: R$ <span id="saldo-exibido">0,00</span></div>
+            <div class="saldo-box">SALDO: R$ <span id="txt-saldo">0,00</span></div>
             
-            <p>SORTEIO EM:</p>
             <div class="timer-display" id="relogio">05:00</div>
-            
-            <button class="btn-comprar" onclick="comprarCartelaReal()">COMPRAR CARTELA (R$ 2,00)</button>
 
-            <div id="area-cartela" style="display:none;">
-                <div class="cartela-area">
-                    <strong>SUA CARTELA OFICIAL</strong>
-                    <div id="grid-numeros" class="grid-cartela"></div>
-                    <small style="color: #666; display: block; margin-top: 10px;">ID: #<span id="cartela-id">---</span></small>
+            <div class="compra-area">
+                <p style="margin: 0 0 10px 0;">Quantas cartelas deseja?</p>
+                <input type="number" id="qtd-cartelas" class="input-qtd" value="1" min="1" max="50">
+                <button class="btn-comprar" onclick="comprarVárias()">COMPRAR AGORA (R$ 2,00 cada)</button>
+            </div>
+
+            <div id="lista-de-cartelas" class="cartelas-container">
                 </div>
-            </div>
 
-            <div class="caixa">
-                <input type="number" id="valor-deposito" value="10" min="10">
-                <button class="btn-pix" onclick="gerarPixDeposito()">DEPOSITAR (MÍN. R$ 10)</button>
-            </div>
-        </div>
-
-        <div id="tela-sorteio">
-            <h2 style="color:#edb120;">SORTEIO AO VIVO</h2>
-            <div id="bola" style="font-size: 60px; background:#fff; color:#000; width:90px; height:90px; line-height:90px; border-radius:50%; margin:20px auto; border:4px solid #edb120;">--</div>
-            <div id="ranking-container">
-                <h3>TOP 10 JOGADORES</h3>
-                <div id="lista-ranking" style="text-align: left; padding: 10px;"></div>
+            <div class="financeiro">
+                <input type="number" id="deposito-val" value="10" min="10">
+                <button class="btn-pix" onclick="depositar()">DEPOSITAR VIA PIX</button>
             </div>
         </div>
     </div>
 
     <script>
-        let saldoReal = 0.00; // Começa zerado
-        let acumuladoParaSorteio = 0.00;
+        let saldoReal = 0.00;
         let tempo = 300;
-        let cartelaAtiva = null;
+        const API = "https://bingo-backend-89dt.onrender.com";
 
-        // 1. FUNÇÃO DE COMPRA REAL
-        function comprarCartelaReal() {
-            if (saldoReal >= 2.00) {
-                // Desconta do saldo de verdade
-                saldoReal -= 2.00;
-                acumuladoParaSorteio += 1.80;
-                
-                // Atualiza a tela
-                atualizarInterfaceSaldo();
-                
-                // Gera os números seguindo suas regras (sem repetir, sem dobrados, sem seq 3)
-                cartelaAtiva = gerarNumerosCartela();
-                exibirCartela(cartelaAtiva);
-                
-                alert("Compra confirmada! Sua cartela está pronta para o sorteio.");
-            } else {
-                alert("Saldo insuficiente! Deposite pelo menos R$ 10,00 para jogar.");
-            }
-        }
-
-        function gerarNumerosCartela() {
-            let n = [];
-            while(n.length < 10) {
-                let num = Math.floor(Math.random() * 50) + 1;
-                if(n.includes(num)) continue;
-                if([11,22,33,44].includes(num)) continue;
-                
-                let seq = false;
-                if(n.includes(num-1) && n.includes(num-2)) seq = true;
-                if(n.includes(num+1) && n.includes(num+2)) seq = true;
-                if(n.includes(num-1) && n.includes(num+1)) seq = true;
-                
-                if(!seq) n.push(num);
-            }
-            return n.sort((a,b) => a - b);
-        }
-
-        function exibirCartela(numeros) {
-            const grid = document.getElementById('grid-numeros');
-            grid.innerHTML = "";
-            numeros.forEach(num => {
-                grid.innerHTML += `<div class="num-cartela">${num < 10 ? '0'+num : num}</div>`;
-            });
-            document.getElementById('area-cartela').style.display = 'block';
-            document.getElementById('cartela-id').innerText = Math.floor(Math.random() * 10000);
-        }
-
-        function atualizarInterfaceSaldo() {
-            document.getElementById('saldo-exibido').innerText = saldoReal.toFixed(2).replace('.', ',');
-        }
-
-        // 2. FUNÇÃO DO CRONÔMETRO
-        function iniciarTimer() {
+        function iniciar() {
+            atualizarTelaSaldo();
             setInterval(() => {
-                if (tempo > 0) {
+                if(tempo > 0) {
                     tempo--;
-                    let m = Math.floor(tempo / 60);
-                    let s = tempo % 60;
-                    document.getElementById('relogio').innerText = 
-                        `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                } else {
-                    mostrarSorteio();
+                    let m = Math.floor(tempo/60);
+                    let s = tempo%60;
+                    document.getElementById('relogio').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
                 }
             }, 1000);
         }
 
-        function mostrarSorteio() {
-            document.getElementById('tela-jogo').style.display = 'none';
-            document.getElementById('tela-sorteio').style.display = 'block';
-            // Aqui entra a lógica do Top 10 que mostrei antes...
+        function comprarVárias() {
+            const qtd = parseInt(document.getElementById('qtd-cartelas').value);
+            const custoTotal = qtd * 2.00;
+
+            if (isNaN(qtd) || qtd <= 0) return alert("Digite uma quantidade válida!");
+            
+            if (saldoReal >= custoTotal) {
+                saldoReal -= custoTotal;
+                atualizarTelaSaldo();
+                
+                const container = document.getElementById('lista-de-cartelas');
+                // container.innerHTML = ""; // Limpar as antigas se quiser, ou acumular
+
+                for(let i = 0; i < qtd; i++) {
+                    const nums = gerarNumerosBingo();
+                    adicionarCartelaNaTela(nums);
+                }
+                
+                alert(`Sucesso! Você comprou ${qtd} cartela(s).`);
+            } else {
+                alert(`Saldo insuficiente! Você precisa de R$ ${custoTotal.toFixed(2)} para comprar ${qtd} cartelas.`);
+            }
         }
 
-        // 3. FUNÇÃO DE DEPÓSITO REAL (LIGAÇÃO COM SEU RENDER)
-        async function gerarPixDeposito() {
-            const valor = document.getElementById('valor-deposito').value;
-            if (valor < 10) return alert("Depósito mínimo de R$ 10,00");
+        function gerarNumerosBingo() {
+            let n = [];
+            while(n.length < 10) {
+                let num = Math.floor(Math.random() * 50) + 1;
+                if(!n.includes(num) && ![11,22,33,44].includes(num)) {
+                    // Travas de sequência
+                    if(!(n.includes(num-1) && n.includes(num-2))) n.push(num);
+                }
+            }
+            return n.sort((a,b) => a - b);
+        }
 
+        function adicionarCartelaNaTela(nums) {
+            const container = document.getElementById('lista-de-cartelas');
+            const id = Math.floor(Math.random() * 99999);
+            
+            let gridHtml = "";
+            nums.forEach(n => gridHtml += `<div class="n-box">${n < 10 ? '0'+n : n}</div>`);
+
+            const cartelaHtml = `
+                <div class="cartela-item">
+                    <strong>CARTELA #GT-${id}</strong>
+                    <div class="grid-nums">${gridHtml}</div>
+                </div>
+            `;
+            container.innerHTML = cartelaHtml + container.innerHTML; // Adiciona no topo
+        }
+
+        function atualizarTelaSaldo() {
+            document.getElementById('txt-saldo').innerText = saldoReal.toFixed(2).replace('.', ',');
+        }
+
+        async function depositar() {
+            // Função real conectada ao seu Render
+            const val = document.getElementById('deposito-val').value;
             try {
-                const response = await fetch('https://bingo-backend-89dt.onrender.com/gerar-pix', {
+                const res = await fetch(`${API}/gerar-pix`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ valor: valor })
+                    body: JSON.stringify({ valor: val })
                 });
-                const data = await response.json();
-                if (data.qr_code) {
-                    // Simulação para você testar agora: como não temos o webhook pronto, 
-                    // vou adicionar o saldo assim que o PIX é gerado para você ver funcionando.
-                    // Na vida real, o saldo só sobe após o pagamento.
-                    alert("CÓDIGO PIX GERADO! (Simulando entrada de saldo para seu teste)");
-                    saldoReal += parseFloat(valor);
-                    atualizarInterfaceSaldo();
+                const data = await res.json();
+                if(data.qr_code) {
+                    prompt("Copie seu PIX:", data.qr_code);
+                    // Aqui você esperaria o Webhook do MP confirmar
                 }
-            } catch (e) {
-                alert("Conectando ao servidor...");
-            }
+            } catch(e) { alert("Conectando ao servidor..."); }
         }
     </script>
 </body>
