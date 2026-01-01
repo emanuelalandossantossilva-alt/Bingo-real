@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(cors());
 
 const client = new MercadoPagoConfig({ 
-    accessToken: 'APP_USR-8763595166258074-051810-7561f584732103328e75927572635941-1815152179' 
+    accessToken: 'APP_USR-2683158167668377-123121-4666c74759e0eac123b8c4c23bf7c1f1-485513741' 
 });
 const payment = new Payment(client);
 
