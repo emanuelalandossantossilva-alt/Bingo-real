@@ -1,130 +1,79 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Real - Live</title>
+    <title>Bingo Real - Depósito</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #020617; color: #e2e8f0; padding: 10px; margin: 0; padding-bottom: 80px; }
-        .premio-box { display: block; background: linear-gradient(135deg, #b45309, #f59e0b, #facc15, #b45309); color: #fff; text-align: center; padding: 20px; border-radius: 15px; border: 2px solid #fff; margin-bottom: 15px; box-shadow: 0 0 20px rgba(250, 204, 21, 0.5); animation: brilho 2s infinite; cursor: pointer; }
-        @keyframes brilho { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
-        .valor-acumulado { font-size: 2.2rem; font-weight: bold; display: block; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
-        .card-topo { background: #1e293b; border-radius: 12px; padding: 15px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .btn-acao { border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 0.7rem; cursor: pointer; margin-left: 5px; }
-        .btn-deposito { background: #32bcad; color: #000; }
-        .btn-saque { background: #f87171; color: #fff; }
-        .navbar-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #1e293b; display: flex; justify-content: space-around; padding: 12px 0; border-top: 2px solid #334155; z-index: 1000; }
-        .nav-item { text-align: center; color: #94a3b8; background: none; border: none; font-size: 0.7rem; cursor: pointer; text-transform: uppercase; font-weight: bold; }
-        .nav-item.active { color: #3b82f6; }
-        .btn-buy { background: #22c55e; color: #fff; border: none; padding: 15px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; text-transform: uppercase; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; box-sizing: border-box; }
-        #painelAdmin { display: none; background: #ef4444; padding: 15px; border-radius: 10px; margin-top: 10px; border: 2px dashed #fff; text-align: center; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        input { width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+        button { background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #218838; }
+        #pix-container { margin-top: 20px; display: none; word-break: break-all; background: #e9ecef; padding: 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-<div class="premio-box" onclick="logicaAdmin()">
-    <span style="font-size:0.8rem; font-weight:bold; text-transform: uppercase;">💰 SORTEIO EM BREVE 💰</span>
-    <span class="valor-acumulado" id="premioDisplay">ACUMULANDO...</span>
-</div>
+    <div class="card">
+        <h2>Recarregar Saldo</h2>
+        <p>Deposite via PIX para começar a jogar</p>
+        
+        <input type="number" id="valor-deposito" placeholder="Valor (R$)" min="1" value="10">
+        <br>
+        <button onclick="depositar()">Gerar PIX Automático</button>
 
-<div class="card-topo">
-    <div><span style="font-size:0.6rem; color:#94a3b8; display:block;">SALDO</span><b style="color:#facc15; font-size:1.4rem;" id="saldoDisplay">R$ 0,00</b></div>
-    <div style="display: flex;">
-        <button onclick="aba('tabPix')" class="btn-acao btn-deposito">DEPOSITAR</button>
-        <button onclick="aba('tabSaque')" class="btn-acao btn-saque">SACAR</button>
+        <div id="pix-container">
+            <p><strong>Copia e Cola:</strong></p>
+            <textarea id="pix-code" readonly style="width: 100%; height: 80px;"></textarea>
+            <br><br>
+            <button style="background-color: #007bff;" onclick="copiarPix()">Copiar Código</button>
+        </div>
     </div>
-</div>
 
-<div id="painelAdmin">
-    <h4 style="margin:0 0 10px 0;">PAINEL DO DONO</h4>
-    <input type="number" id="valorAdd" placeholder="Valor para adicionar">
-    <button onclick="adicionarSaldoManual()" style="width:100%; padding:10px; font-weight:bold; background:#fff; color:#000; border-radius:5px; border:none; cursor:pointer;">ADICIONAR SALDO</button>
-</div>
+    <script>
+        async function depositar() {
+            const valor = document.getElementById('valor-deposito').value;
+            const btn = document.querySelector('button');
+            
+            if (!valor || valor < 1) return alert("Digite um valor válido!");
 
-<div id="tabBingo" class="tab-content active">
-    <div style="text-align: center; background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155;">
-        <button class="btn-buy" onclick="comprar()">COMPRAR CARTELA (R$ 2,00)</button>
-    </div>
-</div>
+            btn.innerText = "Gerando...";
+            btn.disabled = true;
 
-<div id="tabPix" class="tab-content">
-    <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; text-align: center;">
-        <h3 style="color:#32bcad; margin-top:0;">DEPOSITAR VIA PIX</h3>
-        <input type="number" id="valorDep" placeholder="Valor R$" value="10">
-        <button onclick="gerarDep()" style="background:#32bcad; color:black; border:none; width:100%; padding:15px; border-radius:8px; font-weight:bold; cursor:pointer;">PEDIR PIX NO WHATSAPP</button>
-    </div>
-</div>
+            try {
+                // Link do seu servidor no Render
+                const response = await fetch('https://bingo-backend-89dt.onrender.com/gerar-pix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ valor: valor })
+                });
 
-<div id="tabSaque" class="tab-content">
-    <div style="background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155;">
-        <h3 style="color:#f87171; text-align: center; margin-top:0;">SOLICITAR SAQUE</h3>
-        <input type="number" id="valorSaque" placeholder="Valor R$">
-        <input type="text" id="pixSaque" placeholder="Sua Chave PIX">
-        <button onclick="solicitarSaque()" style="background:#f87171; color:white; border:none; width:100%; padding:15px; border-radius:8px; font-weight:bold; cursor:pointer;">CONFIRMAR SAQUE</button>
-    </div>
-</div>
-
-<nav class="navbar-bottom">
-    <button class="nav-item active" onclick="aba('tabBingo')">🎰 BINGO</button>
-    <button class="nav-item" onclick="aba('tabPix')">💰 DEPÓSITO</button>
-    <button class="nav-item" onclick="aba('tabSaque')">💸 SAQUE</button>
-</nav>
-
-<script>
-    let saldo = 0.00;
-    let cliquesAdmin = 0;
-    const WHATSAPP_LINK = "https://wa.me/5586995932214";
-
-    function aba(id) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    }
-
-    function logicaAdmin() {
-        cliquesAdmin++;
-        if(cliquesAdmin >= 5) {
-            document.getElementById('painelAdmin').style.display = 'block';
-            cliquesAdmin = 0;
+                const data = await response.json();
+                
+                if (data.qr_code) {
+                    document.getElementById('pix-container').style.display = 'block';
+                    document.getElementById('pix-code').value = data.qr_code;
+                    alert("PIX Gerado com sucesso!");
+                } else {
+                    alert("Erro do Mercado Pago. Verifique seu Access Token.");
+                }
+            } catch (error) {
+                alert("O servidor está acordando... aguarde 30 segundos e tente novamente.");
+            } finally {
+                btn.innerText = "Gerar PIX Automático";
+                btn.disabled = false;
+            }
         }
-    }
 
-    function adicionarSaldoManual() {
-        let v = parseFloat(document.getElementById('valorAdd').value);
-        if(!isNaN(v)) {
-            saldo += v;
-            document.getElementById('saldoDisplay').innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
-            document.getElementById('painelAdmin').style.display = 'none';
-            document.getElementById('valorAdd').value = '';
+        function copiarPix() {
+            const copyText = document.getElementById("pix-code");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            alert("Código copiado!");
         }
-    }
+    </script>
 
-    function comprar() {
-        if(saldo >= 2) {
-            saldo -= 2;
-            document.getElementById('saldoDisplay').innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
-            alert("Cartela comprada com sucesso!");
-        } else {
-            alert("Saldo insuficiente. Deposite via WhatsApp!");
-        }
-    }
-
-    function gerarDep() {
-        let v = document.getElementById('valorDep').value;
-        let msg = encodeURIComponent(`Quero depositar R$ ${v} no Bingo.`);
-        window.location.href = `${WHATSAPP_LINK}?text=${msg}`;
-    }
-
-    function solicitarSaque() {
-        let v = document.getElementById('valorSaque').value;
-        let c = document.getElementById('pixSaque').value;
-        if(!v || !c) return alert("Preencha o valor e a chave PIX!");
-        let msg = encodeURIComponent(`Quero sacar R$ ${v}. Minha chave PIX é: ${c}`);
-        window.location.href = `${WHATSAPP_LINK}?text=${msg}`;
-    }
-</script>
 </body>
 </html>
