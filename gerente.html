@@ -1,1 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Administração - Bingo</title>
+    <style>
+        body { font-family: sans-serif; background: #020617; color: white; padding: 20px; text-align: center; }
+        .box-login { background: #1e293b; padding: 30px; border-radius: 15px; display: inline-block; border: 1px solid #facc15; }
+        .card { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; text-align: left;}
+        input { padding: 10px; border-radius: 5px; border: 1px solid #334155; background: #0f172a; color: white; margin: 10px 0; }
+        button { padding: 10px 20px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; background: #22c55e; color: white; }
+        #conteudoGerente { display: none; }
+    </style>
+</head>
+<body>
 
+    <div id="telaLogin">
+        <div class="box-login">
+            <h2 style="color:#facc15;">Acesso Restrito</h2>
+            <input type="password" id="senhaInput" placeholder="Digite a Senha Mestra">
+            <br>
+            <button onclick="verificarSenha()">ENTRAR NO PAINEL</button>
+        </div>
+    </div>
+
+    <div id="conteudoGerente">
+        <h1>Gerenciador de Créditos</h1>
+        <button style="background:#3b82f6; width: 100%; margin-bottom: 20px;" onclick="carregarJogadores()">🔄 ATUALIZAR LISTA</button>
+        <div id="lista">Carregando...</div>
+    </div>
+
+    <script>
+        const API = "https://bingo-backend-89dt.onrender.com"; //
+        const SENHA_MESTRA = "1234"; // MUDE AQUI A SUA SENHA
+
+        function verificarSenha() {
+            const senhaDigitada = document.getElementById('senhaInput').value;
+            if (senhaDigitada === SENHA_MESTRA) {
+                document.getElementById('telaLogin').style.display = 'none';
+                document.getElementById('conteudoGerente').style.display = 'block';
+                carregarJogadores();
+            } else {
+                alert("Senha Incorreta!");
+            }
+        }
+
+        async function carregarJogadores() {
+            try {
+                const res = await fetch(`${API}/users`);
+                const dados = await res.json();
+                const lista = document.getElementById('lista');
+                lista.innerHTML = "";
+                dados.forEach(u => {
+                    lista.innerHTML += `
+                        <div class="card">
+                            <div><b>${u.name.toUpperCase()}</b><br><span style="color:#facc15">R$ ${u.saldo.toFixed(2)}</span></div>
+                            <div>
+                                <input type="number" id="val-${u._id}" style="width:60px" placeholder="R$">
+                                <button onclick="addSaldo('${u._id}')">ADD</button>
+                            </div>
+                        </div>`;
+                });
+            } catch (e) { alert("Erro ao conectar ao Render."); }
+        }
+
+        async function addSaldo(id) {
+            const valor = document.getElementById(`val-${id}`).value;
+            if(!valor) return;
+            await fetch(`${API}/add-saldo`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId: id, amount: parseFloat(valor) })
+            });
+            alert("Saldo adicionado!");
+            carregarJogadores();
+        }
+    </script>
+</body>
+</html>
