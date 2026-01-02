@@ -1,137 +1,133 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bingo Live - R$ 1.000,00</title>
-<style>
-/* Estrutura visual baseada nas suas imagens */
-body { font-family: 'Segoe UI', sans-serif; background: #020617; color: #e2e8f0; padding: 10px; margin: 0; padding-bottom: 60px; }
-.card-topo { background: #1e293b; border-radius: 12px; padding: 10px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
-.valor-destaque { color: #facc15; font-weight: bold; font-size: 1.2rem; }
-.premio-box { background: linear-gradient(90deg, #b45309, #f59e0b, #b45309); color: #fff; text-align: center; padding: 10px; border-radius: 12px; border: 1px solid #facc15; margin-bottom: 15px; }
-
-/* TELA DE AUTENTICAÇÃO */
-#telaLogin { position: fixed; top:0; left:0; width:100%; height:100%; background:#020617; z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
-.login-box { background:#1e293b; padding:25px; border-radius:15px; width:100%; max-width:320px; text-align:center; border: 1px solid #334155; }
-.login-box input { width: 90%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; text-align: center; }
-
-.btn-acao { background: #22c55e; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
-.btn-acao:disabled { background: #475569; cursor: not-allowed; }
-
-.tabs { display: flex; gap: 5px; margin-bottom: 15px; background: #0f172a; padding: 5px; border-radius: 12px; }
-.tab-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; background: transparent; color: #94a3b8; font-weight: bold; cursor: pointer; font-size: 0.7rem; }
-.tab-btn.active { background: #3b82f6; color: #fff; }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Live - R$ 1.000,00</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #020617; color: #e2e8f0; padding: 10px; margin: 0; padding-bottom: 60px; }
+        .box { background: #1e293b; border-radius: 12px; padding: 15px; border: 1px solid #334155; margin-bottom: 15px; text-align: center; }
+        .valor-destaque { color: #facc15; font-weight: bold; font-size: 1.2rem; }
+        .premio-box { background: linear-gradient(90deg, #b45309, #f59e0b, #b45309); color: #fff; text-align: center; padding: 15px; border-radius: 12px; border: 1px solid #facc15; margin-bottom: 15px; }
+        
+        /* Login */
+        #telaLogin { position: fixed; top:0; left:0; width:100%; height:100%; background:#020617; z-index:1000; display:flex; align-items:center; justify-content:center; }
+        .login-card { background:#1e293b; padding:25px; border-radius:15px; width:90%; max-width:320px; text-align:center; border: 1px solid #334155; }
+        input { width: 90%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; text-align: center; }
+        
+        /* Botões */
+        .btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; }
+        .btn-green { background: #22c55e; color: white; }
+        .btn-blue { background: #3b82f6; color: white; }
+        
+        /* Jogo */
+        .bola { display: inline-flex; width: 35px; height: 35px; align-items: center; justify-content: center; font-weight: bold; margin: 3px; border-radius: 50%; background: #334155; border: 1px solid #facc15; color: white; }
+        .sorteada { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+        #statusServer { font-size: 0.7rem; margin-bottom: 10px; color: #4ade80; }
+    </style>
 </head>
 <body>
 
 <div id="telaLogin">
-    <div class="login-box">
-        <h2 style="color:#facc15; margin:0 0 15px 0;">BINGO LIVE</h2>
+    <div class="login-card">
+        <h2 style="color:#facc15; margin-top:0;">BINGO LIVE</h2>
+        <div id="statusServer">● Servidor Conectado</div>
         
         <div id="areaLogin">
-            <input type="email" id="emailLogin" placeholder="E-mail">
-            <input type="password" id="senhaLogin" placeholder="Senha">
-            <button class="btn-acao" id="btnEntrar" onclick="processarAutenticacao('login')">ENTRAR</button>
-            <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 15px;">Novo aqui? <a href="#" onclick="trocarForm(false)" style="color:#3b82f6;">Criar Conta</a></p>
+            <input type="email" id="email" placeholder="Seu E-mail">
+            <input type="password" id="senha" placeholder="Sua Senha">
+            <button class="btn btn-green" onclick="autenticar('login')">Entrar</button>
+            <p style="font-size: 0.8rem;">Novo? <a href="#" onclick="toggleForm(true)" style="color:#3b82f6;">Criar Conta</a></p>
         </div>
 
-        <div id="areaCadastro" style="display: none;">
-            <input type="text" id="nomeNovo" placeholder="Seu Nome">
-            <input type="email" id="emailNovo" placeholder="E-mail">
-            <input type="password" id="senhaNovo" placeholder="Senha">
-            <button class="btn-acao" id="btnCadastrar" style="background:#3b82f6;" onclick="processarAutenticacao('cadastro')">CADASTRAR</button>
-            <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 15px;">Já tem conta? <a href="#" onclick="trocarForm(true)" style="color:#3b82f6;">Fazer Login</a></p>
+        <div id="areaCadastro" style="display:none;">
+            <input type="text" id="nomeReg" placeholder="Nome Completo">
+            <input type="email" id="emailReg" placeholder="E-mail">
+            <input type="password" id="senhaReg" placeholder="Senha">
+            <button class="btn btn-blue" onclick="autenticar('cadastro')">Cadastrar</button>
+            <p style="font-size: 0.8rem;">Já tem conta? <a href="#" onclick="toggleForm(false)" style="color:#3b82f6;">Login</a></p>
         </div>
-        
-        <p id="msgServidor" style="font-size: 0.6rem; color: #facc15; display: none; margin-top: 10px;">⚠️ O servidor está acordando... Isso pode levar 30 segundos no primeiro acesso.</p>
     </div>
 </div>
 
 <div class="premio-box">
-    <span style="font-size:0.6rem; font-weight:bold;">PRÊMIO ACUMULADO</span><br>
-    <b style="font-size:1.5rem;">R$ 1.000,00</b>
+    <small>PRÊMIO DA RODADA</small><br>
+    <b style="font-size:1.8rem;">R$ 1.000,00</b>
 </div>
 
-<div class="card-topo">
-    <div><span style="font-size:0.6rem; color:#94a3b8; text-transform:uppercase;">Meu Saldo</span><br><span class="valor-destaque" id="saldoExibido">R$ 0,00</span></div>
-    <button style="background:#32bcad; border:none; color:#000; padding:5px 10px; border-radius:5px; font-weight:bold; font-size:0.7rem;">DEPOSITAR</button>
-</div>
-
-<div class="tabs" style="margin-top:15px;">
-    <button class="tab-btn active" onclick="verAba('abaComprar')">CARRINHO</button>
-    <button class="tab-btn" onclick="verAba('abaSorteio')">SORTEIO</button>
-</div>
-
-<div id="abaComprar" class="tab-content active">
-    <div style="background:#1e293b; padding:20px; border-radius:15px; border:1px solid #334155; text-align:center;">
-        <p style="color:#facc15; font-weight:bold;">COMPRE SUAS CARTELAS</p>
-        <button class="btn-acao">COMPRAR (R$ 2,00)</button>
+<div class="box">
+    <div style="display:flex; justify-content: space-between; align-items:center;">
+        <div style="text-align:left;">
+            <small style="color:#94a3b8;">OLÁ, <span id="nomeUser">...</span></small><br>
+            <span class="valor-destaque" id="saldoUser">R$ 0,00</span>
+        </div>
+        <button style="background:#32bcad; border:none; padding:5px 10px; border-radius:5px; font-weight:bold;">PIX</button>
     </div>
 </div>
 
-<div id="abaSorteio" class="tab-content">
-    <div style="text-align:center; padding:20px; color:#94a3b8;">Aguardando início da rodada...</div>
+<div class="box">
+    <h3 id="txtStatus">Aguardando Início...</h3>
+    <div id="timer" style="font-size: 2rem; font-weight: bold; color: #22c55e;">00:00</div>
+    <div id="containerBolas" style="margin-top:15px;"></div>
 </div>
 
 <script>
-const API_URL = "https://bingo-backend-89dt.onrender.com";
+    const API = "https://bingo-backend-89dt.onrender.com"; //
+    let usuarioAtivo = null;
 
-function trocarForm(mostrarLogin) {
-    document.getElementById('areaLogin').style.display = mostrarLogin ? 'block' : 'none';
-    document.getElementById('areaCadastro').style.display = mostrarLogin ? 'none' : 'block';
-}
-
-function verAba(id) {
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-}
-
-async function processarAutenticacao(tipo) {
-    const isLogin = tipo === 'login';
-    const email = isLogin ? document.getElementById('emailLogin').value : document.getElementById('emailNovo').value;
-    const senha = isLogin ? document.getElementById('senhaLogin').value : document.getElementById('senhaNovo').value;
-    const nome = isLogin ? "" : document.getElementById('nomeNovo').value;
-
-    if (!email || !senha) return alert("Preencha os campos!");
-
-    const btn = isLogin ? document.getElementById('btnEntrar') : document.getElementById('btnCadastrar');
-    const msg = document.getElementById('msgServidor');
-    
-    btn.innerText = "CONECTANDO...";
-    btn.disabled = true;
-    msg.style.display = "block";
-
-    try {
-        const rota = isLogin ? "/login" : "/register";
-        const corpo = isLogin ? { email, senha } : { name: nome, email, senha };
-
-        const response = await fetch(`${API_URL}${rota}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(corpo)
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            document.getElementById('saldoExibido').innerText = `R$ ${data.user.saldo.toFixed(2).replace('.', ',')}`;
-            document.getElementById('telaLogin').style.display = 'none';
-        } else {
-            alert(data.message || "Erro ao processar.");
-            btn.disabled = false;
-            btn.innerText = isLogin ? "ENTRAR" : "CADASTRAR";
-        }
-    } catch (err) {
-        // Isso acontece quando o Render está "acordando"
-        alert("O servidor está ligando. Tente clicar novamente em 15 segundos.");
-        btn.disabled = false;
-        btn.innerText = isLogin ? "ENTRAR" : "CADASTRAR";
+    function toggleForm(isReg) {
+        document.getElementById('areaLogin').style.display = isReg ? 'none' : 'block';
+        document.getElementById('areaCadastro').style.display = isReg ? 'block' : 'none';
     }
-}
+
+    async function autenticar(tipo) {
+        const isLogin = tipo === 'login';
+        const payload = isLogin ? 
+            { email: id('email').value, senha: id('senha').value } :
+            { name: id('nomeReg').value, email: id('emailReg').value, senha: id('senhaReg').value };
+
+        try {
+            const res = await fetch(`${API}/${isLogin ? 'login' : 'register'}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if(res.ok) {
+                if(isLogin) {
+                    usuarioAtivo = data.user;
+                    id('nomeUser').innerText = usuarioAtivo.name.toUpperCase();
+                    id('saldoUser').innerText = `R$ ${usuarioAtivo.saldo.toFixed(2)}`;
+                    id('telaLogin').style.display = 'none';
+                    iniciarMonitoramento();
+                } else {
+                    alert("Cadastro realizado! Faça login.");
+                    toggleForm(false);
+                }
+            } else { alert(data.message); }
+        } catch (e) { alert("Servidor acordando... tente novamente."); }
+    }
+
+    async function atualizarStatusJogo() {
+        try {
+            const res = await fetch(`${API}/game-status`);
+            const status = await res.json();
+            
+            id('timer').innerText = status.tempo || "00:00";
+            id('txtStatus').innerText = status.fase === 'sorteio' ? "SORTEANDO BOLAS!" : "PRÓXIMA RODADA EM:";
+            
+            if(status.bolas) {
+                id('containerBolas').innerHTML = status.bolas.map(b => `<div class="bola sorteada">${b}</div>`).join('');
+            }
+        } catch (e) { console.log("Sincronizando..."); }
+    }
+
+    function iniciarMonitoramento() {
+        setInterval(atualizarStatusJogo, 3000);
+    }
+
+    function id(el) { return document.getElementById(el); }
 </script>
+
 </body>
 </html>
