@@ -82,30 +82,17 @@
             <div style="background:white; padding:10px; border-radius:10px; margin-bottom:15px;"><img id="imgQr" src="" style="width:100%;"></div>
             <button class="btn btn-blue" onclick="copiarPix()">COPIAR CÓDIGO</button>
         </div>
-        <button class="btn" style="background:#475569; color:white;" onclick="id('modalPix').style.display='none'">FECHAR</button>
+        <button class="btn" style="background:#475569; color:white;" onclick="document.getElementById('modalPix').style.display='none'">FECHAR</button>
     </div>
 </div>
 
 <script>
     const API = "https://bingo-backend-89dt.onrender.com"; 
-    const mp = new MercadoPago('APP_USR-3f875a4f-aff1-4b7b-902e-4494b11b472d');
     let usuarioAtivo = null;
     let pixCopiaCola = "";
-    let tempoRestante = 300; 
 
     function id(el) { return document.getElementById(el); }
     function alternarAuth(tipo) { id('formLogin').style.display = tipo === 'login' ? 'block' : 'none'; id('formCadastro').style.display = tipo === 'cadastro' ? 'block' : 'none'; }
-
-    function iniciarCronometro() {
-        setInterval(() => {
-            if(tempoRestante > 0) {
-                tempoRestante--;
-                let min = Math.floor(tempoRestante / 60);
-                let seg = tempoRestante % 60;
-                id('timer').innerText = `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
-            }
-        }, 1000);
-    }
 
     async function autenticar(tipo) {
         const isLogin = tipo === 'login';
@@ -119,11 +106,38 @@
                     id('nomeUser').innerText = usuarioAtivo.name.toUpperCase();
                     id('saldoUser').innerText = `R$ ${usuarioAtivo.saldo.toFixed(2)}`;
                     id('telaAuth').style.display = 'none';
-                    iniciarCronometro();
-                    setInterval(sincronizar, 3000);
+                    setInterval(sincronizar, 2000);
                 } else { alert("Conta criada! Entre agora."); alternarAuth('login'); }
             } else { alert(data.message); }
         } catch (e) { alert("Conectando ao servidor..."); }
+    }
+
+    async function sincronizar() {
+        if(!usuarioAtivo) return;
+        try {
+            const res = await fetch(`${API}/game-status`);
+            const st = await res.json();
+            
+            // REGRA: Só mostra valor se a fase for 'sorteio'
+            if(st.fase === 'sorteio' && st.premioAcumulado > 0) {
+                id('txtAcumulado').innerText = `R$ ${st.premioAcumulado.toFixed(2)}`;
+            } else {
+                id('txtAcumulado').innerText = "ACUMULANDO...";
+            }
+
+            if(st.tempoRestante !== undefined) {
+                let min = Math.floor(st.tempoRestante / 60);
+                let seg = st.tempoRestante % 60;
+                id('timer').innerText = `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
+                id('txtStatus').innerText = st.fase === 'sorteio' ? "SORTEIO EM ANDAMENTO:" : "INÍCIO EM:";
+            }
+
+            if(st.bolas) id('containerBolas').innerHTML = st.bolas.map(b => `<div class="bola sorteada">${b}</div>`).join('');
+            
+            const resU = await fetch(`${API}/user-data/${usuarioAtivo._id}`);
+            const dataU = await resU.json();
+            id('saldoUser').innerText = `R$ ${dataU.saldo.toFixed(2)}`;
+        } catch (e) { }
     }
 
     async function comprarComSaldo() {
@@ -134,14 +148,9 @@
                 headers: {'Content-Type': 'application/json'}, 
                 body: JSON.stringify({ usuarioId: usuarioAtivo._id, quantidade: qtd }) 
             });
-            const data = await res.json();
-            if(res.ok) {
-                alert("Cartelas compradas!");
-                sincronizar();
-            } else {
-                alert(data.message);
-            }
-        } catch (e) { alert("Erro de conexão. Verifique o Render!"); }
+            if(res.ok) { alert("Compra realizada!"); sincronizar(); }
+            else { const d = await res.json(); alert(d.message); }
+        } catch (e) { alert("Erro na compra."); }
     }
 
     async function gerarPagamentoCartela() {
@@ -158,33 +167,10 @@
                 pixCopiaCola = data.qr_code;
                 id('imgQr').src = `data:image/png;base64,${data.qr_code_base64}`;
                 id('loadingPix').style.display = 'none'; id('qrContainer').style.display = 'block';
-            } else {
-                alert("Erro no PIX.");
             }
-        } catch (e) { alert("Erro de servidor."); id('modalPix').style.display='none'; }
+        } catch (e) { alert("Erro PIX"); id('modalPix').style.display='none'; }
     }
-
-    function copiarPix() { navigator.clipboard.writeText(pixCopiaCola); alert("Código Copiado!"); }
-
-    async function sincronizar() {
-        try {
-            const res = await fetch(`${API}/game-status`);
-            const st = await res.json();
-            
-            // Lógica para mostrar "ACUMULANDO..." ou o valor real
-            if(st.premioAcumulado > 0) {
-                id('txtAcumulado').innerText = `R$ ${st.premioAcumulado.toFixed(2)}`;
-            } else {
-                id('txtAcumulado').innerText = "ACUMULANDO...";
-            }
-            
-            if(st.bolas) id('containerBolas').innerHTML = st.bolas.map(b => `<div class="bola sorteada">${b}</div>`).join('');
-            
-            const resU = await fetch(`${API}/user-data/${usuarioAtivo._id}`);
-            const dataU = await resU.json();
-            id('saldoUser').innerText = `R$ ${dataU.saldo.toFixed(2)}`;
-        } catch (e) { }
-    }
+    function copiarPix() { navigator.clipboard.writeText(pixCopiaCola); alert("Copiado!"); }
 </script>
 </body>
 </html>
