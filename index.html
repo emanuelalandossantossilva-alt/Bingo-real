@@ -28,17 +28,17 @@
     <div class="auth-card">
         <h2 style="color:#facc15; margin-top:0;">BINGO LIVE</h2>
         <div id="formLogin">
-            <input type="email" id="emailLogin" placeholder="E-mail">
-            <input type="password" id="senhaLogin" placeholder="Senha">
+            <input type="email" id="emailLogin" placeholder="Seu E-mail">
+            <input type="password" id="senhaLogin" placeholder="Sua Senha">
             <button class="btn btn-green" onclick="autenticar('login')">ENTRAR</button>
-            <p style="font-size: 0.8rem; margin-top:10px;">Novo? <a href="#" onclick="alternarAuth('cadastro')" style="color:#3b82f6;">Cadastrar</a></p>
+            <p style="font-size: 0.8rem; margin-top:10px;">Novo por aqui? <a href="#" onclick="alternarAuth('cadastro')" style="color:#3b82f6;">Cadastrar</a></p>
         </div>
         <div id="formCadastro" style="display:none;">
             <input type="text" id="nomeReg" placeholder="Nome Completo">
             <input type="email" id="emailReg" placeholder="E-mail">
             <input type="password" id="senhaReg" placeholder="Senha">
             <button class="btn btn-blue" onclick="autenticar('cadastro')">CRIAR CONTA</button>
-            <p style="font-size: 0.8rem; margin-top:10px;"><a href="#" onclick="alternarAuth('login')" style="color:#3b82f6;">Voltar</a></p>
+            <p style="font-size: 0.8rem; margin-top:10px;"><a href="#" onclick="alternarAuth('login')" style="color:#3b82f6;">Voltar ao Login</a></p>
         </div>
     </div>
 </div>
@@ -60,10 +60,11 @@
         </div>
     </div>
     <div style="background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #4ade80; margin-top:10px;">
+        <p style="font-size: 0.8rem; color:#94a3b8; margin-bottom:5px;">QUANTAS CARTELAS?</p>
         <input type="number" id="qtdCartelas" value="1" min="1" oninput="document.getElementById('totalTxt').innerText = (this.value * 2).toFixed(2)">
         <p>Total: R$ <span id="totalTxt">2,00</span></p>
-        <button class="btn btn-blue" onclick="comprarComSaldo()">COMPRAR COM SALDO</button>
-        <button class="btn btn-green" onclick="gerarPagamentoCartela()">ADICIONAR VIA PIX</button>
+        <button class="btn btn-blue" onclick="comprarComSaldo()">USAR MEU SALDO</button>
+        <button class="btn btn-green" onclick="gerarPagamentoCartela()">COMPRAR VIA PIX</button>
     </div>
 </div>
 
@@ -76,7 +77,7 @@
 <div id="modalPix">
     <div class="modal-content">
         <h3 style="color:#facc15;">PAGAMENTO PIX</h3>
-        <div id="loadingPix">Gerando...</div>
+        <div id="loadingPix">Gerando QR Code...</div>
         <div id="qrContainer" style="display:none;">
             <div style="background:white; padding:10px; border-radius:10px; margin-bottom:15px;"><img id="imgQr" src="" style="width:100%;"></div>
             <button class="btn btn-blue" onclick="copiarPix()">COPIAR CÓDIGO</button>
@@ -90,12 +91,11 @@
     const mp = new MercadoPago('APP_USR-3f875a4f-aff1-4b7b-902e-4494b11b472d');
     let usuarioAtivo = null;
     let pixCopiaCola = "";
-    let tempoRestante = 300; // 5 minutos
+    let tempoRestante = 300; 
 
     function id(el) { return document.getElementById(el); }
     function alternarAuth(tipo) { id('formLogin').style.display = tipo === 'login' ? 'block' : 'none'; id('formCadastro').style.display = tipo === 'cadastro' ? 'block' : 'none'; }
 
-    // Faz o tempo correr na tela
     function iniciarCronometro() {
         setInterval(() => {
             if(tempoRestante > 0) {
@@ -123,43 +123,63 @@
                     setInterval(sincronizar, 3000);
                 } else { alert("Conta criada! Entre agora."); alternarAuth('login'); }
             } else { alert(data.message); }
-        } catch (e) { alert("Conectando..."); }
+        } catch (e) { alert("Conectando ao servidor..."); }
     }
 
     async function comprarComSaldo() {
         const qtd = id('qtdCartelas').value;
         try {
-            const res = await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: usuarioAtivo._id, quantidade: qtd }) });
+            const res = await fetch(`${API}/comprar-com-saldo`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ usuarioId: usuarioAtivo._id, quantidade: qtd }) 
+            });
             const data = await res.json();
-            alert(data.message);
-            sincronizar();
-        } catch (e) { alert("Erro na compra."); }
+            if(res.ok) {
+                alert("Cartelas compradas!");
+                sincronizar();
+            } else {
+                alert(data.message);
+            }
+        } catch (e) { alert("Erro de conexão. Verifique o Render!"); }
     }
 
     async function gerarPagamentoCartela() {
         const qtd = id('qtdCartelas').value;
         id('modalPix').style.display = 'flex'; id('qrContainer').style.display = 'none'; id('loadingPix').style.display = 'block';
         try {
-            const res = await fetch(`${API}/gerar-pix`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ valor: qtd * 2.00, usuarioId: usuarioAtivo._id, quantidade: qtd }) });
+            const res = await fetch(`${API}/gerar-pix`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ valor: qtd * 2.00, usuarioId: usuarioAtivo._id, quantidade: qtd }) 
+            });
             const data = await res.json();
-            pixCopiaCola = data.qr_code;
-            id('imgQr').src = `data:image/png;base64,${data.qr_code_base64}`;
-            id('loadingPix').style.display = 'none'; id('qrContainer').style.display = 'block';
-        } catch (e) { alert("Erro! Use o Netlify."); id('modalPix').style.display='none'; }
+            if(data.qr_code_base64) {
+                pixCopiaCola = data.qr_code;
+                id('imgQr').src = `data:image/png;base64,${data.qr_code_base64}`;
+                id('loadingPix').style.display = 'none'; id('qrContainer').style.display = 'block';
+            } else {
+                alert("Erro no PIX.");
+            }
+        } catch (e) { alert("Erro de servidor."); id('modalPix').style.display='none'; }
     }
 
-    function copiarPix() { navigator.clipboard.writeText(pixCopiaCola); alert("Copiado!"); }
+    function copiarPix() { navigator.clipboard.writeText(pixCopiaCola); alert("Código Copiado!"); }
 
     async function sincronizar() {
         try {
             const res = await fetch(`${API}/game-status`);
             const st = await res.json();
+            
+            // Lógica para mostrar "ACUMULANDO..." ou o valor real
             if(st.premioAcumulado > 0) {
                 id('txtAcumulado').innerText = `R$ ${st.premioAcumulado.toFixed(2)}`;
             } else {
                 id('txtAcumulado').innerText = "ACUMULANDO...";
             }
+            
             if(st.bolas) id('containerBolas').innerHTML = st.bolas.map(b => `<div class="bola sorteada">${b}</div>`).join('');
+            
             const resU = await fetch(`${API}/user-data/${usuarioAtivo._id}`);
             const dataU = await resU.json();
             id('saldoUser').innerText = `R$ ${dataU.saldo.toFixed(2)}`;
