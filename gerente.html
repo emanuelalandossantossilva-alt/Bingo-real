@@ -17,62 +17,64 @@
     <div id="telaLogin">
         <div class="box-login">
             <h2 style="color:#facc15;">Acesso Restrito</h2>
-            <input type="password" id="senhaInput" placeholder="Digite a Senha Mestra">
+            <input type="password" id="senhaInput" placeholder="Senha Mestra">
             <br>
-            <button onclick="verificarSenha()">ENTRAR NO PAINEL</button>
+            <button onclick="verificarSenha()">ENTRAR</button>
         </div>
     </div>
 
     <div id="conteudoGerente">
-        <h1>Gerenciador de Créditos</h1>
+        <h1 style="color:#facc15;">Gerenciador de Créditos</h1>
         <button style="background:#3b82f6; width: 100%; margin-bottom: 20px;" onclick="carregarJogadores()">🔄 ATUALIZAR LISTA</button>
-        <div id="lista">Carregando...</div>
+        <div id="lista">Carregando jogadores...</div>
     </div>
 
     <script>
-        const API = "https://bingo-backend-89dt.onrender.com"; //
-        const SENHA_MESTRA = "7681"; // MUDE AQUI A SUA SENHA
+        // Use exatamente este link que funcionou no seu Cron-job
+        const API = "https://bingo-backend-89dt.onrender.com"; 
+        const SENHA_MESTRA = "1234";
 
         function verificarSenha() {
-            const senhaDigitada = document.getElementById('senhaInput').value;
-            if (senhaDigitada === SENHA_MESTRA) {
+            if (document.getElementById('senhaInput').value === SENHA_MESTRA) {
                 document.getElementById('telaLogin').style.display = 'none';
                 document.getElementById('conteudoGerente').style.display = 'block';
                 carregarJogadores();
-            } else {
-                alert("Senha Incorreta!");
-            }
+            } else { alert("Senha Incorreta!"); }
         }
 
         async function carregarJogadores() {
             try {
                 const res = await fetch(`${API}/users`);
+                if (!res.ok) throw new Error();
                 const dados = await res.json();
                 const lista = document.getElementById('lista');
                 lista.innerHTML = "";
                 dados.forEach(u => {
                     lista.innerHTML += `
                         <div class="card">
-                            <div><b>${u.name.toUpperCase()}</b><br><span style="color:#facc15">R$ ${u.saldo.toFixed(2)}</span></div>
+                            <div><b>${u.name.toUpperCase()}</b><br><span>R$ ${u.saldo.toFixed(2)}</span></div>
                             <div>
                                 <input type="number" id="val-${u._id}" style="width:60px" placeholder="R$">
                                 <button onclick="addSaldo('${u._id}')">ADD</button>
                             </div>
                         </div>`;
                 });
-            } catch (e) { alert("Erro ao conectar ao Render."); }
+            } catch (e) { 
+                alert("O servidor ainda está ligando. Aguarde 30 segundos e tente o botão azul novamente."); 
+            }
         }
 
         async function addSaldo(id) {
             const valor = document.getElementById(`val-${id}`).value;
             if(!valor) return;
-            await fetch(`${API}/add-saldo`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId: id, amount: parseFloat(valor) })
-            });
-            alert("Saldo adicionado!");
-            carregarJogadores();
+            try {
+                const res = await fetch(`${API}/add-saldo`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ userId: id, amount: parseFloat(valor) })
+                });
+                if(res.ok) { alert("Saldo atualizado!"); carregarJogadores(); }
+            } catch (err) { alert("Erro ao salvar saldo."); }
         }
     </script>
 </body>
