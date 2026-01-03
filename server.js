@@ -19,7 +19,13 @@ const User = mongoose.model('User', new mongoose.Schema({
     saldo: { type: Number, default: 0 }
 }));
 
-let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
+// ESTADO DO JOGO (Agora com limite de 50 bolas)
+let jogo = { 
+    bolas: [], 
+    fase: 'aguardando', 
+    tempoRestante: 300, 
+    premioAcumulado: 0 
+};
 
 // CRONÔMETRO
 setInterval(() => {
@@ -31,11 +37,12 @@ setInterval(() => {
     }
 }, 1000);
 
+// SORTEIO LIMITADO A 50 BOLAS
 function iniciarSorteio() {
     let intervalo = setInterval(() => {
-        if (jogo.bolas.length < 75) {
+        if (jogo.bolas.length < 50) { // Alterado para 50 bolas
             let num;
-            do { num = Math.floor(Math.random() * 75) + 1; } 
+            do { num = Math.floor(Math.random() * 50) + 1; } 
             while (jogo.bolas.includes(num));
             jogo.bolas.push(num);
         } else {
@@ -49,24 +56,63 @@ function reiniciarJogo() {
     jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 }
 
-// --- ROTA DO RANKING TOP 10 ---
-app.get('/top-10', async (req, res) => {
+// FUNÇÃO PARA GERAR CARTELA DE 10 NÚMEROS ALEATÓRIOS (Sem sequências simples)
+function gerarCartelaUnica() {
+    let numeros = [];
+    while (numeros.length < 10) { // Agora com 10 números
+        let num = Math.floor(Math.random() * 50) + 1;
+        if (!numeros.includes(num)) {
+            numeros.push(num);
+        }
+    }
+    // Ordena para facilitar a visualização, mas os números são aleatórios
+    return numeros.sort((a, b) => a - b);
+}
+
+// ROTA DE COMPRA (Cartela R$ 2 | Acumulado R$ 1,50)
+app.post('/comprar-com-saldo', async (req, res) => {
     try {
-        const topUsers = await User.find({}, 'name saldo').sort({ saldo: -1 }).limit(10);
-        res.set('Access-Control-Allow-Origin', '*');
-        res.json(topUsers);
-    } catch (e) { res.status(500).send(); }
+        const { usuarioId, quantidade } = req.body;
+        const user = await User.findById(usuarioId);
+        const custoTotal = quantidade * 2;
+        const valorParaPremio = quantidade * 1.5;
+
+        if (user && user.saldo >= custoTotal) {
+            user.saldo -= custoTotal;
+            await user.save();
+            
+            jogo.premioAcumulado += valorParaPremio;
+            
+            // Gera as cartelas de 10 números para o jogador
+            let novasCartelas = [];
+            for(let i=0; i<quantidade; i++) {
+                novasCartelas.push(gerarCartelaUnica());
+            }
+
+            res.set('Access-Control-Allow-Origin', '*');
+            res.json({ 
+                message: "Sucesso", 
+                novoSaldo: user.saldo,
+                cartelas: novasCartelas 
+            });
+        } else { 
+            res.status(400).json({ message: "Saldo insuficiente" }); 
+        }
+    } catch (e) { res.status(500).json({ message: "Erro" }); }
 });
 
-// --- ROTA PARA O BOTÃO PIX ---
-app.post('/solicitar-pix', (req, res) => {
-    // Aqui você pode adicionar lógica para te avisar, 
-    // mas por enquanto vamos apenas dar o retorno positivo para o site
+// RANKING E OUTRAS ROTAS
+app.get('/top-10', async (req, res) => {
+    const topUsers = await User.find({}, 'name saldo').sort({ saldo: -1 }).limit(10);
     res.set('Access-Control-Allow-Origin', '*');
-    res.json({ message: "Solicitação enviada! Chame o gerente no WhatsApp." });
+    res.json(topUsers);
 });
 
-// ROTAS DO GERENTE
+app.get('/game-status', (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json(jogo);
+});
+
 app.get('/users', async (req, res) => {
     const users = await User.find();
     res.set('Access-Control-Allow-Origin', '*');
@@ -74,35 +120,12 @@ app.get('/users', async (req, res) => {
 });
 
 app.post('/add-saldo', async (req, res) => {
-    try {
-        const { userId, amount } = req.body;
-        const user = await User.findById(userId);
-        user.saldo += amount;
-        await user.save();
-        res.set('Access-Control-Allow-Origin', '*');
-        res.json({ message: "OK" });
-    } catch (e) { res.status(500).send(); }
-});
-
-// COMPRA COM SALDO
-app.post('/comprar-com-saldo', async (req, res) => {
-    try {
-        const { usuarioId, quantidade } = req.body;
-        const user = await User.findById(usuarioId);
-        const custoTotal = quantidade * 2;
-        if (user.saldo >= custoTotal) {
-            user.saldo -= custoTotal;
-            await user.save();
-            jogo.premioAcumulado += (quantidade * 1);
-            res.set('Access-Control-Allow-Origin', '*');
-            res.json({ message: "Sucesso" });
-        } else { res.status(400).json({ message: "Saldo insuficiente" }); }
-    } catch (e) { res.status(500).json({ message: "Erro" }); }
-});
-
-app.get('/game-status', (req, res) => {
+    const { userId, amount } = req.body;
+    const user = await User.findById(userId);
+    user.saldo += amount;
+    await user.save();
     res.set('Access-Control-Allow-Origin', '*');
-    res.json(jogo);
+    res.json({ message: "OK" });
 });
 
 app.post('/login', async (req, res) => {
