@@ -14,8 +14,8 @@ const client = new MercadoPagoConfig({
 
 // 2. CONEXÃO MONGO
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log("Conectado ao MongoDB com sucesso!"))
-    .catch(err => console.error("Erro ao conectar no MongoDB:", err));
+    .then(() => console.log("Conectado ao MongoDB!"))
+    .catch(err => console.error("Erro Mongo:", err));
 
 const User = mongoose.model('User', new mongoose.Schema({
     name: String, 
@@ -23,12 +23,14 @@ const User = mongoose.model('User', new mongoose.Schema({
     senha: { type: String },
     saldo: { type: Number, default: 0 }, 
     cartelas: { type: Array, default: [] },
-    cartelasProximaRodada: { type: Array, default: [] } // NOVO: Guarda cartelas compradas durante o sorteio
+    cartelasProximaRodada: { type: Array, default: [] }
 }));
 
+// Variáveis de controle do jogo
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
+let premioReservadoProxima = 0; // DINHEIRO QUE FICA NA CAIXINHA PARA A PRÓXIMA RODADA
 
-// 3. LOOP DE TEMPO DO JOGO
+// 3. LOOP DO CRONÔMETRO
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
         if (jogo.tempoRestante > 0) { jogo.tempoRestante--; } 
@@ -58,11 +60,12 @@ function iniciarSorteio() {
                         jogo.fase = 'finalizado';
                         clearInterval(intervalo);
                         
-                        // RESET COM TRANSIÇÃO DE CARTELAS RESERVADAS
+                        // --- RESET DA RODADA ---
                         setTimeout(async () => {
+                            // Limpa cartelas velhas
                             await User.updateMany({}, { cartelas: [] });
-                            
-                            // Move cartelas da espera para o jogo principal
+
+                            // Transfere cartelas da reserva para o jogo principal
                             const emEspera = await User.find({ "cartelasProximaRodada.0": { $exists: true } });
                             for (let userEsp of emEspera) {
                                 await User.findByIdAndUpdate(userEsp._id, {
@@ -70,7 +73,11 @@ function iniciarSorteio() {
                                 });
                             }
 
-                            jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
+                            // O prêmio da nova rodada começa com o que estava guardado
+                            let valorInicial = premioReservadoProxima;
+                            premioReservadoProxima = 0; // Zera a caixinha
+
+                            jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: valorInicial, ganhadorRodada: null };
                         }, 15000);
                         return;
                     }
@@ -81,20 +88,19 @@ function iniciarSorteio() {
             jogo.fase = 'finalizado';
             setTimeout(async () => {
                 await User.updateMany({}, { cartelas: [] });
-                jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
+                jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: premioReservadoProxima, ganhadorRodada: null };
+                premioReservadoProxima = 0;
             }, 10000);
         }
     }, 4000);
 }
 
-// 4. ROTAS
-app.get('/game-status', (req, res) => res.json(jogo));
-
+// 4. ROTA DE COMPRA INTELIGENTE
 app.post('/comprar-com-saldo', async (req, res) => {
     const user = await User.findById(req.body.usuarioId);
     if (user && user.saldo >= 2) {
-        user.saldo -= 2;
-        jogo.premioAcumulado += 1.5;
+        user.saldo -= 2; // Cobra o valor na hora
+        
         let c = [];
         while(c.length < 10) {
             let n = Math.floor(Math.random() * 50) + 1;
@@ -103,33 +109,35 @@ app.post('/comprar-com-saldo', async (req, res) => {
         const novaCartela = c.sort((a,b)=>a-b);
 
         if (jogo.fase === 'sorteio') {
+            // SE ESTIVER SORTEANDO: Guarda cartela e dinheiro para depois
             user.cartelasProximaRodada.push(novaCartela);
+            premioReservadoProxima += 1.5;
             await user.save();
-            res.json({ msg: "Sorteio em andamento! Sua cartela valerá para a PRÓXIMA rodada." });
+            res.json({ msg: "Sorteio em andamento! Sua cartela e os R$ 1,50 do prêmio foram guardados para a PRÓXIMA rodada." });
         } else {
+            // SE ESTIVER AGUARDANDO: Entra agora
             user.cartelas.push(novaCartela);
+            jogo.premioAcumulado += 1.5;
             await user.save();
-            res.json({ msg: "Cartela comprada com sucesso para esta rodada!" });
+            res.json({ msg: "Cartela comprada! R$ 1,50 adicionados ao prêmio atual." });
         }
     } else res.status(400).send("Saldo insuficiente");
 });
 
-// (Mantenha as rotas de Login, Register, Webhook e Ranking iguais às anteriores)
+// ROTAS DE SUPORTE
+app.get('/game-status', (req, res) => res.json(jogo));
+app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
 app.post('/login', async (req, res) => {
     const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
     if(u) res.json({ user: u }); else res.status(401).send();
 });
-
 app.post('/register', async (req, res) => {
     try {
         const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password });
-        await u.save(); 
-        res.json({ok:true});
+        await u.save(); res.json({ok:true});
     } catch(e) { res.status(400).send(); }
 });
 
-app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando!`));
+app.listen(PORT, () => console.log(`Bingo rodando na porta ${PORT}`));
 
