@@ -3,84 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Real - Emanuel Alan</title>
+    <title>Bingo Real - Dinheiro de Verdade</title>
     <style>
-        body { font-family: sans-serif; background-color: #020617; color: white; text-align: center; margin: 0; padding: 10px; }
-        .container { max-width: 450px; margin: auto; }
+        body { font-family: sans-serif; background: #020617; color: white; text-align: center; margin: 0; padding: 10px; }
+        .card { background: #1e293b; padding: 25px; border-radius: 15px; border: 1px solid #facc15; margin-top: 50px; max-width: 400px; margin-inline: auto; }
         .hidden { display: none !important; }
-        
-        /* Telas de Login e Cadastro */
-        .card { background: #1e293b; padding: 25px; border-radius: 15px; border: 1px solid #facc15; margin-top: 50px; }
         input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
-        
-        /* Botões */
-        button { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin: 5px 0; transition: 0.3s; }
+        button { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin: 5px 0; }
         .btn-azul { background: #2563eb; color: white; }
         .btn-verde { background: #16a34a; color: white; }
-        .btn-azul:hover { background: #1d4ed8; }
-        .link { color: #facc15; text-decoration: none; font-size: 14px; cursor: pointer; display: block; margin-top: 10px; }
-
-        /* Jogo */
-        .box-premio { background: linear-gradient(135deg, #451a03 0%, #92400e 100%); padding: 20px; border-radius: 15px; border: 2px solid #facc15; margin-bottom: 20px; }
-        .valor-premio { font-size: 24px; font-weight: bold; color: #facc15; }
-        .user-info { background: #1e293b; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border: 1px solid #334155; }
-        .ranking-box { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #facc15; text-align: left; font-size: 14px; }
-        .timer { font-size: 48px; font-weight: bold; color: #4ade80; margin: 20px 0; }
-        
-        /* Cartelas e Bolas */
-        .cartela { background: white; color: black; padding: 10px; border-radius: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; font-weight: bold; }
+        .btn-vermelho { background: #dc2626; color: white; }
+        .timer { font-size: 40px; font-weight: bold; color: #4ade80; margin: 15px 0; }
         .bola { background:#facc15; color:black; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; margin:2px; }
+        .cartela { background: white; color: black; padding: 10px; border-radius: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="telaLogin" class="card">
-        <h2 style="color:#facc15;">BINGO REAL</h2>
-        <input type="email" id="loginEmail" placeholder="E-mail">
-        <input type="password" id="loginSenha" placeholder="Senha">
-        <button class="btn-azul" onclick="fazerLogin()">ENTRAR</button>
-        <span class="link" onclick="mostrarTela('telaCadastro')">Não tem conta? Criar conta</span>
+<div id="telaLogin" class="card">
+    <h2 style="color:#facc15;">BINGO REAL</h2>
+    <input type="email" id="loginEmail" placeholder="E-mail">
+    <input type="password" id="loginSenha" placeholder="Senha">
+    <button class="btn-azul" onclick="fazerLogin()">ENTRAR</button>
+    <p onclick="mostrarTela('telaCadastro')" style="cursor:pointer; color:#facc15;">Criar conta</p>
+</div>
+
+<div id="telaCadastro" class="card hidden">
+    <h2 style="color:#facc15;">CADASTRO</h2>
+    <input type="text" id="cadNome" placeholder="Nome">
+    <input type="email" id="cadEmail" placeholder="E-mail">
+    <input type="password" id="cadSenha" placeholder="Senha">
+    <button class="btn-verde" onclick="fazerCadastro()">CADASTRAR</button>
+    <p onclick="mostrarTela('telaLogin')" style="cursor:pointer; color:#facc15;">Voltar</p>
+</div>
+
+<div id="telaJogo" class="hidden" style="max-width: 450px; margin: auto;">
+    <div style="background: #92400e; padding: 15px; border-radius: 15px; border: 2px solid #facc15;">
+        <small>PRÊMIO ACUMULADO</small><br>
+        <b id="premioTxt" style="font-size: 24px; color:#facc15;">ACUMULANDO...</b>
     </div>
 
-    <div id="telaCadastro" class="card hidden">
-        <h2 style="color:#facc15;">CADASTRO</h2>
-        <input type="text" id="cadNome" placeholder="Nome Completo">
-        <input type="email" id="cadEmail" placeholder="E-mail">
-        <input type="password" id="cadSenha" placeholder="Crie uma Senha">
-        <button class="btn-verde" onclick="fazerCadastro()">CADASTRAR AGORA</button>
-        <span class="link" onclick="mostrarTela('telaLogin')">Já tenho conta. Entrar</span>
+    <div style="display: flex; justify-content: space-between; padding: 15px; background: #1e293b; margin: 10px 0; border-radius: 10px;">
+        <span id="nomePlayer">...</span>
+        <span id="saldoTxt" style="color:#22c55e; font-weight:bold;">R$ 0,00</span>
     </div>
 
-    <div id="telaJogo" class="hidden">
-        <div class="box-premio">
-            <span style="font-size: 12px; color: #fde68a;">PRÊMIO ACUMULADO</span><br>
-            <span class="valor-premio" id="premioTxt">ACUMULANDO...</span>
-        </div>
+    <div class="timer" id="timerTxt">05:00</div>
+    
+    <button class="btn-azul" onclick="comprarCartela()">COMPRAR CARTELA (R$ 2,00)</button>
+    <button class="btn-verde" onclick="solicitarPix()">DEPÓSITO (MÍN. R$ 10)</button>
+    <button class="btn-vermelho" onclick="abrirModalSaque()">SOLICITAR SAQUE (MÍN. R$ 20)</button>
 
-        <div class="user-info">
-            <div style="text-align: left;">Jogador: <b id="nomePlayer">...</b></div>
-            <div style="text-align: right;">Saldo: <span style="color:#22c55e; font-weight:bold;" id="saldoTxt">R$ 0,00</span></div>
-        </div>
-
-        <div class="ranking-box">
-            <h3 style="margin:0 0 10px 0; color:#facc15; font-size: 16px;">🏆 TOP 10 (Mais Acertos)</h3>
-            <div id="listaRanking">Carregando ranking...</div>
-        </div>
-
-        <div class="timer" id="timerTxt">05:00</div>
-        
-        <button class="btn-azul" onclick="comprarCartela()">COMPRAR CARTELA (R$ 2,00)</button>
-        <button class="btn-verde" onclick="solicitarPix()">DEPOSITAR SALDO (PIX)</button>
-        
-        <h3 style="margin-top: 20px; font-size: 16px;">Minhas Cartelas:</h3>
-        <div id="minhasCartelas"></div>
-
-        <h3 style="margin-top: 20px; font-size: 16px;">Bolas Sorteadas:</h3>
-        <div id="bolasSorteadas" style="display:flex; flex-wrap:wrap; gap:5px; justify-content:center;"></div>
-        
-        <button style="background:none; color:gray; font-size:12px; margin-top: 30px;" onclick="logout()">Sair da Conta</button>
-    </div>
+    <div id="minhasCartelas"></div>
+    <div id="bolasSorteadas" style="display:flex; flex-wrap:wrap; justify-content:center; margin-top:10px;"></div>
 </div>
 
 <script>
@@ -94,141 +69,82 @@
         document.getElementById(id).classList.remove('hidden');
     }
 
-    // ATUALIZAÇÃO AUTOMÁTICA DOS DADOS
     async function carregarDados() {
         if(!USER_ID) return;
-        try {
-            const resStatus = await fetch(`${API}/game-status`);
-            const jogo = await resStatus.json();
+        const resStatus = await fetch(`${API}/game-status`);
+        const jogo = await resStatus.json();
+        
+        document.getElementById('premioTxt').innerText = jogo.bolas.length > 0 ? `R$ ${jogo.premioAcumulado.toFixed(2)}` : "ACUMULANDO...";
+        let min = Math.floor(jogo.tempoRestante / 60);
+        let seg = jogo.tempoRestante % 60;
+        document.getElementById('timerTxt').innerText = `${min < 10 ? '0'+min : min}:${seg < 10 ? '0'+seg : seg}`;
+        
+        if(jogo.bolas.length > 0) {
+            document.getElementById('bolasSorteadas').innerHTML = jogo.bolas.map(b => `<div class="bola">${b}</div>`).join('');
+        }
 
-            // Lógica do Prêmio
-            const premioElemento = document.getElementById('premioTxt');
-            if (jogo.tempoRestante > 0 && jogo.bolas.length === 0) {
-                premioElemento.innerText = "ACUMULANDO...";
-            } else {
-                premioElemento.innerText = `R$ ${jogo.premioAcumulado.toFixed(2)}`;
-            }
-
-            // Cronómetro
-            const timerElemento = document.getElementById('timerTxt');
-            let min = Math.floor(jogo.tempoRestante / 60);
-            let seg = jogo.tempoRestante % 60;
-            timerElemento.innerText = `${min < 10 ? '0'+min : min}:${seg < 10 ? '0'+seg : seg}`;
-
-            // Ranking de Acertos
-            const resRank = await fetch(`${API}/ranking-bingo`);
-            const rank = await resRank.json();
-            document.getElementById('listaRanking').innerHTML = rank.map((u, i) => `
-                <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #334155;">
-                    <span>${i+1}º ${u.name}</span>
-                    <b style="color:#facc15">${u.acertos} / 10</b>
-                </div>
-            `).join('');
-
-            // Bolas
-            if(jogo.bolas.length > 0) {
-                document.getElementById('bolasSorteadas').innerHTML = jogo.bolas.map(b => `
-                    <div class="bola">${b}</div>
-                `).join('');
-            }
-
-            // Dados do Usuário
-            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
-            const user = await resUser.json();
-            document.getElementById('nomePlayer').innerText = user.name.toUpperCase();
-            document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
-
-        } catch (e) { console.log("Erro ao conectar ao servidor..."); }
+        const resUser = await fetch(`${API}/user-data/${USER_ID}`);
+        const user = await resUser.json();
+        document.getElementById('nomePlayer').innerText = user.name.toUpperCase();
+        document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
     }
 
-    // DEPÓSITO VIA MERCADO PAGO
     async function solicitarPix() {
-        const valor = prompt("Quanto deseja depositar? (Mínimo R$ 1,00)");
-        if (!valor || isNaN(valor) || valor < 1) return;
-
-        try {
-            const res = await fetch(`${API}/gerar-pix`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId: USER_ID, valor: valor })
-            });
-            const data = await res.json();
-
-            const pixArea = document.createElement('div');
-            pixArea.style = "position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; color:black; padding:20px; border-radius:15px; z-index:1000; text-align:center; width:85%; box-shadow: 0 0 20px rgba(0,0,0,0.5);";
-            pixArea.innerHTML = `
-                <h3 style="margin:0">Escaneie o QR Code</h3>
-                <img src="data:image/jpeg;base64,${data.qr_code_base64}" width="220">
-                <p style="font-size:11px; word-break:break-all; background:#eee; padding:8px; margin:10px 0; border-radius:5px;">${data.qr_code}</p>
-                <button onclick="this.parentElement.remove()" style="background:#2563eb; color:white; padding:12px; border:none; border-radius:8px; width:100%; cursor:pointer; font-weight:bold;">FECHAR</button>
-            `;
-            document.body.appendChild(pixArea);
-        } catch (e) { alert("Erro ao gerar PIX. Tente novamente."); }
+        const valor = prompt("Valor do depósito? (Mínimo R$ 10)");
+        if (!valor || Number(valor) < 10) return alert("Mínimo R$ 10,00");
+        const res = await fetch(`${API}/gerar-pix`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: USER_ID, valor: valor })
+        });
+        const data = await res.json();
+        const win = window.open("", "PIX", "width=300,height=400");
+        win.document.write(`<h3>Pague o PIX</h3><img src="data:image/jpeg;base64,${data.qr_code_base64}" width="200"><p style="word-break:break-all; font-size:10px;">${data.qr_code}</p>`);
     }
 
-    // COMPRA DE CARTELA
+    async function abrirModalSaque() {
+        const valor = prompt("Valor do saque? (Mínimo R$ 20)");
+        if (!valor || Number(valor) < 20) return alert("Mínimo R$ 20,00");
+        const chave = prompt("Sua chave PIX:");
+        if (!chave) return;
+        const res = await fetch(`${API}/solicitar-saque`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: USER_ID, valor: valor, chavePix: chave })
+        });
+        if(res.ok) alert("Pedido enviado com sucesso!"); else alert("Saldo insuficiente.");
+    }
+
     async function comprarCartela() {
-        try {
-            const res = await fetch(`${API}/comprar-com-saldo`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ usuarioId: USER_ID })
-            });
-            if(res.ok) {
-                const data = await res.json();
-                const div = document.createElement('div');
-                div.className = 'cartela';
-                div.innerHTML = data.cartelas[0].map(n => `<div>${n}</div>`).join('');
-                document.getElementById('minhasCartelas').prepend(div);
-                carregarDados();
-            } else {
-                alert("Saldo insuficiente para comprar cartela!");
-            }
-        } catch (e) { alert("Erro na compra."); }
+        const res = await fetch(`${API}/comprar-com-saldo`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ usuarioId: USER_ID })
+        });
+        if(res.ok) {
+            const data = await res.json();
+            const div = document.createElement('div');
+            div.className = 'cartela';
+            div.innerHTML = data.cartelas[0].map(n => `<div>${n}</div>`).join('');
+            document.getElementById('minhasCartelas').prepend(div);
+        } else alert("Saldo insuficiente!");
     }
 
-    // LOGIN E CADASTRO
     async function fazerLogin() {
-        try {
-            const res = await fetch(`${API}/login`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ email: loginEmail.value, senha: loginSenha.value })
-            });
-            if(res.ok) { 
-                const data = await res.json(); 
-                localStorage.setItem('userId', data.user._id); 
-                USER_ID = data.user._id; 
-                location.reload(); 
-            } else { alert("E-mail ou senha incorretos."); }
-        } catch (e) { alert("Erro ao conectar."); }
+        const res = await fetch(`${API}/login`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email: loginEmail.value, senha: loginSenha.value })
+        });
+        if(res.ok) { const data = await res.json(); localStorage.setItem('userId', data.user._id); location.reload(); }
+        else alert("Erro!");
     }
 
     async function fazerCadastro() {
-        const dados = { name: cadNome.value, email: cadEmail.value, senha: cadSenha.value };
-        if(!dados.name || !dados.email || !dados.senha) return alert("Preencha todos os campos!");
-        
-        try {
-            const res = await fetch(`${API}/register`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify(dados) 
-            });
-            if(res.ok) { alert("Conta criada com sucesso!"); mostrarTela('telaLogin'); }
-            else { alert("Erro ao criar conta. E-mail já existe?"); }
-        } catch (e) { alert("Erro no servidor."); }
+        await fetch(`${API}/register`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name: cadNome.value, email: cadEmail.value, senha: cadSenha.value })
+        });
+        alert("Criado!"); mostrarTela('telaLogin');
     }
 
-    function logout() { localStorage.clear(); location.reload(); }
-
-    // INICIALIZAÇÃO
-    if(USER_ID) { 
-        mostrarTela('telaJogo'); 
-        setInterval(carregarDados, 3000); 
-        carregarDados(); 
-    } else { 
-        mostrarTela('telaLogin'); 
-    }
+    if(USER_ID) { mostrarTela('telaJogo'); setInterval(carregarDados, 3000); carregarDados(); }
 </script>
 </body>
 </html>
