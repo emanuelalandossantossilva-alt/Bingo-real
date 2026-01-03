@@ -6,10 +6,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// 1. CONEXÃO COM O BANCO DE DADOS
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB Conectado"))
   .catch(err => console.log("Erro MongoDB:", err));
 
+// 2. MODELO DE USUÁRIO
 const User = mongoose.model('User', new mongoose.Schema({
     name: String,
     email: { type: String, unique: true },
@@ -17,9 +19,15 @@ const User = mongoose.model('User', new mongoose.Schema({
     saldo: { type: Number, default: 0 }
 }));
 
-let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
+// 3. ESTADO DO JOGO
+let jogo = { 
+    bolas: [], 
+    fase: 'aguardando', 
+    tempoRestante: 300, 
+    premioAcumulado: 0 
+};
 
-// CRONÔMETRO (Já está funcionando!)
+// 4. LÓGICA DO CRONÔMETRO E SORTEIO
 setInterval(() => {
     if (jogo.tempoRestante > 0) {
         jogo.tempoRestante--;
@@ -47,43 +55,68 @@ function reiniciarJogo() {
     jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 }
 
-// --- ROTAS DO GERENTE (PARA CORRIGIR O ERRO DE CONEXÃO) ---
+// 5. ROTA DO RANKING TOP 10 (NOVIDADE)
+app.get('/top-10', async (req, res) => {
+    try {
+        const topUsers = await User.find({}, 'name saldo').sort({ saldo: -1 }).limit(10);
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json(topUsers);
+    } catch (e) { res.status(500).send(); }
+});
+
+// 6. ROTAS DO GERENTE
 app.get('/users', async (req, res) => {
-    const users = await User.find();
-    res.set('Access-Control-Allow-Origin', '*');
-    res.json(users);
+    try {
+        const users = await User.find();
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json(users);
+    } catch (e) { res.status(500).send(); }
 });
 
 app.post('/add-saldo', async (req, res) => {
     try {
         const { userId, amount } = req.body;
         const user = await User.findById(userId);
-        user.saldo += amount;
-        await user.save();
-        res.set('Access-Control-Allow-Origin', '*');
-        res.json({ message: "OK" });
+        if (user) {
+            user.saldo += amount;
+            await user.save();
+            res.set('Access-Control-Allow-Origin', '*');
+            res.json({ message: "OK" });
+        }
     } catch (e) { res.status(500).send(); }
 });
 
-// --- ROTA DE COMPRA (PARA CORRIGIR "ERRO NA COMPRA") ---
+// 7. ROTA DE COMPRA COM DESCONTO REAL
 app.post('/comprar-com-saldo', async (req, res) => {
     try {
         const { usuarioId, quantidade } = req.body;
         const user = await User.findById(usuarioId);
-        if (user.saldo >= (quantidade * 2)) {
-            user.saldo -= (quantidade * 2);
+        const custoTotal = quantidade * 2;
+
+        if (user && user.saldo >= custoTotal) {
+            user.saldo -= custoTotal;
             await user.save();
             jogo.premioAcumulado += (quantidade * 1);
             res.set('Access-Control-Allow-Origin', '*');
-            res.json({ message: "Sucesso" });
-        } else { res.status(400).json({ message: "Saldo insuficiente" }); }
+            res.json({ message: "Sucesso", novoSaldo: user.saldo });
+        } else { 
+            res.status(400).json({ message: "Saldo insuficiente" }); 
+        }
     } catch (e) { res.status(500).json({ message: "Erro" }); }
 });
 
-// ROTAS DE LOGIN E STATUS
+// 8. ROTAS DE LOGIN E STATUS
 app.get('/game-status', (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.json(jogo);
+});
+
+app.get('/user-data/:id', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json(user);
+    } catch (e) { res.status(404).send(); }
 });
 
 app.post('/login', async (req, res) => {
