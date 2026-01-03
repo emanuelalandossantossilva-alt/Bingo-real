@@ -1,9 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
-
 const app = express();
+
 app.use(express.json());
 app.use(cors());
 
@@ -13,50 +12,57 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.log("Erro MongoDB:", err));
 
 // Modelo de Usuário
-const UserSchema = new mongoose.Schema({
+const User = mongoose.model('User', new mongoose.Schema({
     name: String,
     email: { type: String, unique: true },
     senha: { type: String, required: true },
     saldo: { type: Number, default: 0 }
-});
-const User = mongoose.model('User', UserSchema);
+}));
 
-// Lógica do Jogo
-let jogo = {
-    bolas: [],
-    fase: 'aguardando',
-    tempoRestante: 300,
-    premioAcumulado: 0
-};
+let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 
-// Rota para o botão "USAR MEU SALDO" funcionar
+// Rota de Compra
 app.post('/comprar-com-saldo', async (req, res) => {
     try {
         const { usuarioId, quantidade } = req.body;
-        const valorTotal = quantidade * 2.0; 
         const user = await User.findById(usuarioId);
-        if (user.saldo >= valorTotal) {
-            user.saldo -= valorTotal; 
+        if (user.saldo >= (quantidade * 2)) {
+            user.saldo -= (quantidade * 2);
             await user.save();
-            jogo.premioAcumulado += (quantidade * 1.0);
-            res.json({ message: "Cartelas compradas com sucesso!" });
-        } else {
-            res.status(400).json({ message: "Saldo insuficiente!" });
-        }
-    } catch (error) {
-        res.status(500).json({ message: "Erro ao processar compra" });
-    }
+            jogo.premioAcumulado += (quantidade * 1);
+            res.json({ message: "Sucesso" });
+        } else { res.status(400).json({ message: "Saldo insuficiente" }); }
+    } catch (e) { res.status(500).json({ message: "Erro" }); }
 });
 
-// Rotas Básicas (Login/Status)
-app.get('/game-status', (req, res) => res.json(jogo));
+// Rota de Status (Com a liberação que faltava)
+app.get('/game-status', (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json(jogo);
+});
+
+app.get('/user-data/:id', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json(user);
+    } catch (e) { res.status(404).send(); }
+});
+
+// Login e Registro
 app.post('/login', async (req, res) => {
-    const { email, senha } = req.body;
-    const user = await User.findOne({ email, senha });
+    const user = await User.findOne({ email: req.body.email, senha: req.body.senha });
     if(user) res.json({ user });
     else res.status(401).json({ message: "Erro no login" });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Servidor Online"));
+app.post('/register', async (req, res) => {
+    try {
+        const newUser = new User(req.body);
+        await newUser.save();
+        res.json({ message: "Criado" });
+    } catch (e) { res.status(400).json({ message: "Erro ao criar" }); }
+});
+
+app.listen(process.env.PORT || 3000);
 
