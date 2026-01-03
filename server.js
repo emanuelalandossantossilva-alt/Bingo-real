@@ -27,23 +27,25 @@ const User = mongoose.model('User', new mongoose.Schema({
     cartelasProximaRodada: { type: Array, default: [] }
 }));
 
-// NOVO: MODELO DE SAQUE (Para você controlar quem pediu)
+// MODELO DE SAQUE (Para o Admin controlar)
 const Saque = mongoose.model('Saque', new mongoose.Schema({
     userId: String,
     userName: String,
     valor: Number,
     chavePix: String,
-    status: { type: String, default: 'pendente' }, // pendente, pago
+    status: { type: String, default: 'pendente' }, 
     data: { type: Date, default: Date.now }
 }));
 
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
 let premioReservadoProxima = 0;
 
-// 3. LOOP DO CRONÔMETRO
+// 3. LOOP DO CRONÔMETRO (DIMINUINDO 1 EM 1 SEGUNDO)
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
-        if (jogo.tempoRestante > 0) { jogo.tempoRestante--; } 
+        if (jogo.tempoRestante > 0) { 
+            jogo.tempoRestante--; 
+        } 
         else { 
             jogo.fase = 'sorteio'; 
             jogo.bolas = [];
@@ -51,7 +53,7 @@ setInterval(() => {
             iniciarSorteio(); 
         }
     }
-}, 1000);
+}, 1000); // 1 segundo exato
 
 function iniciarSorteio() {
     let intervalo = setInterval(async () => {
@@ -93,11 +95,12 @@ async function finalizarRodada() {
         }
         let valorParaNovaRodada = premioReservadoProxima;
         premioReservadoProxima = 0;
+        // Reinicia com 5 minutos (300 segundos)
         jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: valorParaNovaRodada, ganhadorRodada: null };
     }, 15000);
 }
 
-// 4. ROTAS DE COMPRA E JOGO
+// 4. ROTAS
 app.post('/comprar-com-saldo', async (req, res) => {
     const user = await User.findById(req.body.usuarioId);
     if (user && user.saldo >= 2) {
@@ -122,7 +125,7 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } else res.status(400).send("Saldo insuficiente");
 });
 
-// --- NOVA ROTA: PEDIR SAQUE (MANUAL) ---
+// ROTA DE SAQUE MANUAL
 app.post('/pedir-saque', async (req, res) => {
     const { userId, valor, chavePix } = req.body;
     try {
@@ -133,11 +136,9 @@ app.post('/pedir-saque', async (req, res) => {
             return res.status(400).json({ erro: "Saldo insuficiente ou valor abaixo do mínimo (R$ 20)." });
         }
 
-        // 1. Tira o saldo do usuário imediatamente
         user.saldo -= valorNum;
         await user.save();
 
-        // 2. Cria o registro do saque para você ver
         const novoSaque = new Saque({
             userId: user._id,
             userName: user.name,
@@ -146,13 +147,13 @@ app.post('/pedir-saque', async (req, res) => {
         });
         await novoSaque.save();
 
-        res.json({ ok: true, msg: "Solicitação de saque enviada! Aguarde o pagamento em sua chave PIX." });
+        res.json({ ok: true, msg: "Solicitação de saque enviada! Aguarde o PIX em sua conta." });
     } catch (e) {
-        res.status(500).json({ erro: "Erro ao processar pedido de saque." });
+        res.status(500).json({ erro: "Erro ao processar saque." });
     }
 });
 
-// ROTA PARA VOCÊ VER OS SAQUES PENDENTES (Admin básico)
+// ROTA PARA VOCÊ VER QUEM QUER SACAR
 app.get('/admin/saques', async (req, res) => {
     const saques = await Saque.find({ status: 'pendente' });
     res.json(saques);
