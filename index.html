@@ -1,146 +1,141 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const app = express();
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Real - Emanuel Alan</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #020617; color: white; text-align: center; margin: 0; padding: 10px; }
+        .container { max-width: 500px; margin: auto; }
+        
+        /* Box do Prêmio */
+        .box-premio { background: linear-gradient(135deg, #451a03 0%, #92400e 100%); padding: 20px; border-radius: 15px; border: 2px solid #facc15; margin-bottom: 20px; box-shadow: 0 0 20px rgba(250, 204, 21, 0.2); }
+        .valor-premio { font-size: 32px; font-weight: bold; color: #facc15; }
 
-app.use(express.json());
-app.use(cors());
+        /* Status do Jogador */
+        .user-info { background: #1e293b; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border: 1px solid #334155; }
+        .saldo-txt { color: #22c55e; font-weight: bold; font-size: 20px; }
 
-// CONEXÃO
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB Conectado"))
-  .catch(err => console.log("Erro MongoDB:", err));
+        /* Ranking Top 10 */
+        .ranking-box { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #facc15; text-align: left; }
+        .ranking-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #334155; font-size: 14px; }
 
-// MODELO
-const User = mongoose.model('User', new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true },
-    senha: { type: String, required: true },
-    saldo: { type: Number, default: 0 }
-}));
+        /* Cartelas */
+        .cartela { background: white; color: #0f172a; padding: 15px; border-radius: 10px; margin-top: 15px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .num-cartela { background: #e2e8f0; padding: 8px; border-radius: 5px; font-weight: bold; font-size: 18px; }
+        .marcado { background: #22c55e !important; color: white; }
 
-// ESTADO DO JOGO (Agora com limite de 50 bolas)
-let jogo = { 
-    bolas: [], 
-    fase: 'aguardando', 
-    tempoRestante: 300, 
-    premioAcumulado: 0 
-};
+        /* Cronômetro e Botões */
+        .timer { font-size: 48px; font-weight: bold; color: #4ade80; margin: 20px 0; }
+        button { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; margin: 5px 0; transition: 0.3s; }
+        .btn-comprar { background: #2563eb; color: white; }
+        .btn-pix { background: #16a34a; color: white; }
+    </style>
+</head>
+<body>
 
-// CRONÔMETRO
-setInterval(() => {
-    if (jogo.tempoRestante > 0) {
-        jogo.tempoRestante--;
-    } else if (jogo.fase === 'aguardando') {
-        jogo.fase = 'sorteio';
-        iniciarSorteio();
+<div class="container">
+    <div class="box-premio">
+        <span style="font-size: 14px; color: #fde68a;">PRÊMIO TOTAL ACUMULADO</span><br>
+        <span class="valor-premio" id="premioTxt">R$ 0,00</span>
+    </div>
+
+    <div class="user-info">
+        <div style="text-align: left;">
+            <span style="font-size: 12px; color: #94a3b8;">JOGADOR:</span><br>
+            <b id="nomePlayer">CARREGANDO...</b>
+        </div>
+        <div style="text-align: right;">
+            <span style="font-size: 12px; color: #94a3b8;">MEU SALDO:</span><br>
+            <span class="saldo-txt" id="saldoTxt">R$ 0,00</span>
+        </div>
+    </div>
+
+    <div class="ranking-box">
+        <h3 style="margin: 0 0 10px 0; color: #facc15; font-size: 16px;">🏆 TOP 10 RANKING</h3>
+        <div id="listaRanking">Carregando...</div>
+    </div>
+
+    <div id="areaJogo">
+        <div class="timer" id="timerTxt">05:00</div>
+        <button class="btn-comprar" onclick="comprarCartela()">COMPRAR CARTELA (R$ 2,00)</button>
+        <button class="btn-pix" onclick="solicitarPix()">COMPRAR VIA PIX</button>
+    </div>
+
+    <div id="minhasCartelas"></div>
+    <div id="bolasSorteadas" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;"></div>
+</div>
+
+<script>
+    const API = "https://bingo-backend-89dt.onrender.com";
+    const USER_ID = localStorage.getItem('userId'); // Pega o ID de quem logou
+
+    async function carregarDados() {
+        if (!USER_ID) return window.location.href = "login.html";
+
+        // 1. Status do Jogo e Prêmio
+        const resStatus = await fetch(`${API}/game-status`);
+        const jogo = await resStatus.json();
+        document.getElementById('premioTxt').innerText = `R$ ${jogo.premioAcumulado.toFixed(2)}`;
+        
+        // Formata o tempo
+        let min = Math.floor(jogo.tempoRestante / 60);
+        let seg = jogo.tempoRestante % 60;
+        document.getElementById('timerTxt').innerText = `${min}:${seg < 10 ? '0'+seg : seg}`;
+
+        // 2. Dados do Usuário
+        const resUser = await fetch(`${API}/user-data/${USER_ID}`);
+        const user = await resUser.json();
+        document.getElementById('nomePlayer').innerText = user.name.toUpperCase();
+        document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
+
+        // 3. Ranking
+        const resRank = await fetch(`${API}/top-10`);
+        const rank = await resRank.json();
+        document.getElementById('listaRanking').innerHTML = rank.map((u, i) => `
+            <div class="ranking-item">
+                <span>${i+1}º ${u.name}</span>
+                <span style="color:#4ade80">R$ ${u.saldo.toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        // 4. Mostrar Bolas se estiver no sorteio
+        if(jogo.bolas.length > 0) {
+            document.getElementById('bolasSorteadas').innerHTML = jogo.bolas.map(b => `
+                <div style="background:#facc15; color:black; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">${b}</div>
+            `).join('');
+        }
     }
-}, 1000);
 
-// SORTEIO LIMITADO A 50 BOLAS
-function iniciarSorteio() {
-    let intervalo = setInterval(() => {
-        if (jogo.bolas.length < 50) { // Alterado para 50 bolas
-            let num;
-            do { num = Math.floor(Math.random() * 50) + 1; } 
-            while (jogo.bolas.includes(num));
-            jogo.bolas.push(num);
+    async function comprarCartela() {
+        const res = await fetch(`${API}/comprar-com-saldo`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ usuarioId: USER_ID, quantidade: 1 })
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            alert("Cartela gerada com 10 números!");
+            // Desenha a cartela na tela
+            const div = document.createElement('div');
+            div.className = 'cartela';
+            div.innerHTML = data.cartelas[0].map(n => `<div class="num-cartela">${n}</div>`).join('');
+            document.getElementById('minhasCartelas').appendChild(div);
+            carregarDados();
         } else {
-            clearInterval(intervalo);
-            setTimeout(reiniciarJogo, 30000);
-        }
-    }, 4000); 
-}
-
-function reiniciarJogo() {
-    jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
-}
-
-// FUNÇÃO PARA GERAR CARTELA DE 10 NÚMEROS ALEATÓRIOS (Sem sequências simples)
-function gerarCartelaUnica() {
-    let numeros = [];
-    while (numeros.length < 10) { // Agora com 10 números
-        let num = Math.floor(Math.random() * 50) + 1;
-        if (!numeros.includes(num)) {
-            numeros.push(num);
+            alert("Saldo insuficiente!");
         }
     }
-    // Ordena para facilitar a visualização, mas os números são aleatórios
-    return numeros.sort((a, b) => a - b);
-}
 
-// ROTA DE COMPRA (Cartela R$ 2 | Acumulado R$ 1,50)
-app.post('/comprar-com-saldo', async (req, res) => {
-    try {
-        const { usuarioId, quantidade } = req.body;
-        const user = await User.findById(usuarioId);
-        const custoTotal = quantidade * 2;
-        const valorParaPremio = quantidade * 1.5;
+    async function solicitarPix() {
+        await fetch(`${API}/solicitar-pix`, { method: 'POST' });
+        alert("Solicitação enviada ao Gerente Emanuel!");
+    }
 
-        if (user && user.saldo >= custoTotal) {
-            user.saldo -= custoTotal;
-            await user.save();
-            
-            jogo.premioAcumulado += valorParaPremio;
-            
-            // Gera as cartelas de 10 números para o jogador
-            let novasCartelas = [];
-            for(let i=0; i<quantidade; i++) {
-                novasCartelas.push(gerarCartelaUnica());
-            }
+    setInterval(carregarDados, 2000); // Atualiza a tela a cada 2 segundos
+    carregarDados();
+</script>
 
-            res.set('Access-Control-Allow-Origin', '*');
-            res.json({ 
-                message: "Sucesso", 
-                novoSaldo: user.saldo,
-                cartelas: novasCartelas 
-            });
-        } else { 
-            res.status(400).json({ message: "Saldo insuficiente" }); 
-        }
-    } catch (e) { res.status(500).json({ message: "Erro" }); }
-});
-
-// RANKING E OUTRAS ROTAS
-app.get('/top-10', async (req, res) => {
-    const topUsers = await User.find({}, 'name saldo').sort({ saldo: -1 }).limit(10);
-    res.set('Access-Control-Allow-Origin', '*');
-    res.json(topUsers);
-});
-
-app.get('/game-status', (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.json(jogo);
-});
-
-app.get('/users', async (req, res) => {
-    const users = await User.find();
-    res.set('Access-Control-Allow-Origin', '*');
-    res.json(users);
-});
-
-app.post('/add-saldo', async (req, res) => {
-    const { userId, amount } = req.body;
-    const user = await User.findById(userId);
-    user.saldo += amount;
-    await user.save();
-    res.set('Access-Control-Allow-Origin', '*');
-    res.json({ message: "OK" });
-});
-
-app.post('/login', async (req, res) => {
-    const user = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    if(user) res.json({ user });
-    else res.status(401).json({ message: "Erro" });
-});
-
-app.post('/register', async (req, res) => {
-    try {
-        const newUser = new User(req.body);
-        await newUser.save();
-        res.json({ message: "Criado" });
-    } catch (e) { res.status(400).json({ message: "Erro" }); }
-});
-
-app.listen(process.env.PORT || 3000);
-                
+</body>
+</html>
