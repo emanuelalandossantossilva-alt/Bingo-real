@@ -26,9 +26,9 @@ const User = mongoose.model('User', new mongoose.Schema({
     cartelasProximaRodada: { type: Array, default: [] }
 }));
 
-// Variáveis de controle do jogo
+// Variáveis de controle
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
-let premioReservadoProxima = 0; // DINHEIRO QUE FICA NA CAIXINHA PARA A PRÓXIMA RODADA
+let premioReservadoProxima = 0; // CAIXINHA DE DINHEIRO PARA O PRÓXIMO SORTEIO
 
 // 3. LOOP DO CRONÔMETRO
 setInterval(() => {
@@ -59,26 +59,7 @@ function iniciarSorteio() {
                         jogo.ganhadorRodada = u.name;
                         jogo.fase = 'finalizado';
                         clearInterval(intervalo);
-                        
-                        // --- RESET DA RODADA ---
-                        setTimeout(async () => {
-                            // Limpa cartelas velhas
-                            await User.updateMany({}, { cartelas: [] });
-
-                            // Transfere cartelas da reserva para o jogo principal
-                            const emEspera = await User.find({ "cartelasProximaRodada.0": { $exists: true } });
-                            for (let userEsp of emEspera) {
-                                await User.findByIdAndUpdate(userEsp._id, {
-                                    $set: { cartelas: userEsp.cartelasProximaRodada, cartelasProximaRodada: [] }
-                                });
-                            }
-
-                            // O prêmio da nova rodada começa com o que estava guardado
-                            let valorInicial = premioReservadoProxima;
-                            premioReservadoProxima = 0; // Zera a caixinha
-
-                            jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: valorInicial, ganhadorRodada: null };
-                        }, 15000);
+                        finalizarRodada(); // CHAMA A LIMPEZA E TRANSFERÊNCIA
                         return;
                     }
                 }
@@ -86,20 +67,45 @@ function iniciarSorteio() {
         } else {
             clearInterval(intervalo);
             jogo.fase = 'finalizado';
-            setTimeout(async () => {
-                await User.updateMany({}, { cartelas: [] });
-                jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: premioReservadoProxima, ganhadorRodada: null };
-                premioReservadoProxima = 0;
-            }, 10000);
+            finalizarRodada();
         }
     }, 4000);
 }
 
-// 4. ROTA DE COMPRA INTELIGENTE
+// FUNÇÃO QUE JUNTA AS CARTELAS E O DINHEIRO PARA A PRÓXIMA RODADA
+async function finalizarRodada() {
+    setTimeout(async () => {
+        // 1. Limpa quem jogou agora
+        await User.updateMany({}, { cartelas: [] });
+
+        // 2. Transfere cartelas da reserva para o jogo principal
+        const emEspera = await User.find({ "cartelasProximaRodada.0": { $exists: true } });
+        for (let userEsp of emEspera) {
+            await User.findByIdAndUpdate(userEsp._id, {
+                $set: { cartelas: userEsp.cartelasProximaRodada, cartelasProximaRodada: [] }
+            });
+        }
+
+        // 3. PEGA O DINHEIRO DA CAIXINHA E JOGA NO NOVO PRÊMIO
+        let valorParaNovaRodada = premioReservadoProxima;
+        premioReservadoProxima = 0; // Zera a caixinha
+
+        jogo = { 
+            bolas: [], 
+            fase: 'aguardando', 
+            tempoRestante: 300, 
+            premioAcumulado: valorParaNovaRodada, 
+            ganhadorRodada: null 
+        };
+        console.log("Nova rodada iniciada. Prêmio inicial: R$" + valorParaNovaRodada);
+    }, 15000);
+}
+
+// 4. ROTA DE COMPRA COM LÓGICA DE DINHEIRO RESERVADO
 app.post('/comprar-com-saldo', async (req, res) => {
     const user = await User.findById(req.body.usuarioId);
     if (user && user.saldo >= 2) {
-        user.saldo -= 2; // Cobra o valor na hora
+        user.saldo -= 2;
         
         let c = [];
         while(c.length < 10) {
@@ -109,13 +115,13 @@ app.post('/comprar-com-saldo', async (req, res) => {
         const novaCartela = c.sort((a,b)=>a-b);
 
         if (jogo.fase === 'sorteio') {
-            // SE ESTIVER SORTEANDO: Guarda cartela e dinheiro para depois
+            // DINHEIRO E CARTELA VÃO PARA A PRÓXIMA RODADA
             user.cartelasProximaRodada.push(novaCartela);
             premioReservadoProxima += 1.5;
             await user.save();
             res.json({ msg: "Sorteio em andamento! Sua cartela e os R$ 1,50 do prêmio foram guardados para a PRÓXIMA rodada." });
         } else {
-            // SE ESTIVER AGUARDANDO: Entra agora
+            // ENTRA NA RODADA ATUAL
             user.cartelas.push(novaCartela);
             jogo.premioAcumulado += 1.5;
             await user.save();
@@ -124,7 +130,6 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } else res.status(400).send("Saldo insuficiente");
 });
 
-// ROTAS DE SUPORTE
 app.get('/game-status', (req, res) => res.json(jogo));
 app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
 app.post('/login', async (req, res) => {
@@ -139,5 +144,5 @@ app.post('/register', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Bingo rodando na porta ${PORT}`));
-
+app.listen(PORT, () => console.log(`Bingo rodando!`));
+    
