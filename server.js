@@ -21,7 +21,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 
-// --- LÓGICA DO CRONÔMETRO E SORTEIO (O QUE ESTAVA FALTANDO) ---
+// --- CRONÔMETRO ---
 setInterval(() => {
     if (jogo.tempoRestante > 0) {
         jogo.tempoRestante--;
@@ -40,31 +40,38 @@ function iniciarSorteio() {
             jogo.bolas.push(num);
         } else {
             clearInterval(intervalo);
-            setTimeout(reiniciarJogo, 30000); // Reinicia após 30 segundos
+            setTimeout(reiniciarJogo, 30000);
         }
-    }, 4000); // Sorteia uma bola a cada 4 segundos
+    }, 4000); 
 }
 
 function reiniciarJogo() {
     jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 }
-// -----------------------------------------------------------
 
-// Rota de Compra
-app.post('/comprar-com-saldo', async (req, res) => {
+// --- NOVAS ROTAS PARA O GERENTE.HTML FUNCIONAR ---
+app.get('/users', async (req, res) => {
     try {
-        const { usuarioId, quantidade } = req.body;
-        const user = await User.findById(usuarioId);
-        if (user.saldo >= (quantidade * 2)) {
-            user.saldo -= (quantidade * 2);
-            await user.save();
-            jogo.premioAcumulado += (quantidade * 1);
-            res.json({ message: "Sucesso" });
-        } else { res.status(400).json({ message: "Saldo insuficiente" }); }
-    } catch (e) { res.status(500).json({ message: "Erro" }); }
+        const users = await User.find();
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json(users);
+    } catch (e) { res.status(500).send(); }
 });
 
-// Rota de Status
+app.post('/add-saldo', async (req, res) => {
+    try {
+        const { userId, amount } = req.body;
+        const user = await User.findById(userId);
+        if (user) {
+            user.saldo += amount;
+            await user.save();
+            res.set('Access-Control-Allow-Origin', '*');
+            res.json({ message: "Saldo atualizado" });
+        } else { res.status(404).json({ message: "Não encontrado" }); }
+    } catch (e) { res.status(500).send(); }
+});
+
+// --- ROTAS DO JOGADOR ---
 app.get('/game-status', (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.json(jogo);
@@ -78,7 +85,6 @@ app.get('/user-data/:id', async (req, res) => {
     } catch (e) { res.status(404).send(); }
 });
 
-// Login e Registro
 app.post('/login', async (req, res) => {
     const user = await User.findOne({ email: req.body.email, senha: req.body.senha });
     if(user) res.json({ user });
@@ -94,4 +100,3 @@ app.post('/register', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000);
-
