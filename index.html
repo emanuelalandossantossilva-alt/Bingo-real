@@ -15,7 +15,6 @@
 
         .vitoria-animada { animation: brilhar-ouro 1s infinite alternate; border: 3px solid var(--primary); }
         @keyframes brilhar-ouro { from { box-shadow: 0 0 10px var(--primary); } to { box-shadow: 0 0 30px #ffffff, 0 0 40px var(--primary); } }
-        .nome-vencedor { font-size: 32px; color: var(--primary); display: block; margin: 15px 0; text-transform: uppercase; font-weight: bold; }
 
         .container-cartelas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
         .cartela { 
@@ -26,7 +25,7 @@
         .numero { font-size: 11px; font-weight: bold; background: #e2e8f0; padding: 4px 0; border-radius: 4px; }
         .marcado { background: var(--success) !important; color: white; }
 
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
         button { width: 100%; padding: 14px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin: 5px 0; text-transform: uppercase; }
         .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 15px; border-radius: 10px; margin-bottom: 15px; min-height: 70px; display: flex; align-items: center; justify-content: center; }
         .abas { display: flex; background: #0f172a; border-radius: 8px; padding: 4px; margin-bottom: 10px; }
@@ -50,63 +49,26 @@
     </div>
 </div>
 
-<div id="modalSaque" class="modal hidden">
-    <div class="modal-content" style="background: #1e293b; color: white;">
-        <h3 style="color: var(--primary);">Solicitar Saque</h3>
-        <p style="font-size: 11px; color: #94a3b8;">Mínimo para saque: R$ 20,00</p>
-        <input type="number" id="saqueValor" placeholder="Valor (R$)">
-        <input type="text" id="saqueChave" placeholder="Sua Chave PIX">
-        <button onclick="enviarPedidoSaque()" style="background: var(--success); color: white;">PEDIR SAQUE</button>
-        <button onclick="document.getElementById('modalSaque').classList.add('hidden')" style="background: #ef4444; color: white;">FECHAR</button>
-    </div>
-</div>
-
-<div id="modalGanhador" class="modal hidden">
-    <div class="modal-content vitoria-animada" style="background: #020617; color: white;">
-        <h2>🎊 BINGO! 🎊</h2>
-        <p>Ganhador da Rodada:</p>
-        <span id="nomeVencedor" class="nome-vencedor">---</span>
-        <button onclick="document.getElementById('modalGanhador').classList.add('hidden')" style="background:var(--primary); color:black;">FECHAR</button>
-    </div>
-</div>
-
 <div id="telaAuth" class="card">
     <h2 style="color:var(--primary)">BINGO REAL</h2>
-    <div class="abas">
-        <div id="btnAbaLogin" class="aba ativa" onclick="mudarAbaAuth('login')">LOGIN</div>
-        <div id="btnAbaCad" class="aba" onclick="mudarAbaAuth('cad')">CADASTRO</div>
-    </div>
-    <div id="formLogin">
-        <input type="email" id="loginEmail" placeholder="E-mail">
-        <input type="password" id="loginSenha" placeholder="Senha">
-        <button style="background: #2563eb; color: white;" onclick="fazerLogin()">ENTRAR</button>
-    </div>
-    <div id="formCad" class="hidden">
-        <input type="text" id="cadNome" placeholder="Nome">
-        <input type="email" id="cadEmail" placeholder="E-mail">
-        <input type="password" id="cadSenha" placeholder="Senha">
-        <button style="background: var(--success); color: white;" onclick="fazerCadastro()">CADASTRAR</button>
-    </div>
+    <input type="email" id="loginEmail" placeholder="E-mail">
+    <input type="password" id="loginSenha" placeholder="Senha">
+    <button style="background: #2563eb; color: white;" onclick="fazerLogin()">ENTRAR / CADASTRAR</button>
 </div>
 
 <div id="telaJogo" class="hidden">
     <div class="card">
         <div class="caixa-premio">
             <div id="suspenseTxt" class="acumulando">ACUMULANDO...</div>
-            <div id="valorRevelado" class="hidden">
-                <small style="color:#4ade80;">PRÊMIO DA RODADA</small>
-                <div id="valorPremio" style="font-size:24px; font-weight:bold;">R$ 0,00</div>
-            </div>
         </div>
 
         <div class="abas">
             <div id="tabSorteio" class="aba ativa" onclick="mudarAba('sorteio')">SORTEIO</div>
             <div id="tabCartelas" class="aba" onclick="mudarAba('cartelas')">CARTELAS</div>
-            <div id="tabRanking" class="aba" onclick="mudarAba('ranking')">TOP ACERTOS</div>
         </div>
 
         <div id="conteudoSorteio">
-            <div id="timerTxt" style="font-size:24px; color:var(--primary); font-weight:bold;">05:00</div>
+            <div id="timerTxt" style="font-size:24px; color:var(--primary); font-weight:bold;">00:00</div>
             <div id="bolaGrande" style="font-size:60px; margin:10px 0;">--</div>
             <div id="historicoBolas" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px;"></div>
         </div>
@@ -115,35 +77,20 @@
             <div class="container-cartelas" id="listaCartelas"></div>
         </div>
 
-        <div id="conteudoRanking" class="hidden">
-            <div id="listaRanking"></div>
-        </div>
-
         <div style="margin:15px 0;">
             <span id="playerSaldo" style="color:var(--success); font-weight:bold; font-size:18px;">Saldo: R$ 0,00</span>
         </div>
 
         <button style="background: #2563eb; color: white;" onclick="comprarCartelas()">COMPRAR CARTELA (R$ 2,00)</button>
         <button style="background: #16a34a; color: white;" onclick="gerarPix()">DEPOSITAR</button>
-        <button style="background: #9333ea; color: white;" onclick="document.getElementById('modalSaque').classList.remove('hidden')">SACAR SALDO</button>
         <button style="background: transparent; color: #94a3b8; font-size: 10px;" onclick="logout()">SAIR</button>
     </div>
 </div>
 
 <script>
-    // LINHA DA API CONFIGURADA
-    const API = "https://bingo-backend-89dt.onrender.com";
-    
+    const API = "https://bingo-backend-89dt.onrender.com"; //
     let USER_ID = localStorage.getItem('userId');
     let bolasSorteadas = [];
-    let modalGanhadorAberto = false;
-
-    function mudarAbaAuth(tipo) {
-        document.getElementById('formLogin').classList.toggle('hidden', tipo !== 'login');
-        document.getElementById('formCad').classList.toggle('hidden', tipo !== 'cad');
-        document.getElementById('btnAbaLogin').classList.toggle('ativa', tipo === 'login');
-        document.getElementById('btnAbaCad').classList.toggle('ativa', tipo === 'cad');
-    }
 
     async function fazerLogin() {
         const res = await fetch(`${API}/login`, {
@@ -154,31 +101,24 @@
             const d = await res.json();
             localStorage.setItem('userId', d.user._id);
             location.reload();
-        } else alert("Erro no login! Verifique e-mail e senha.");
-    }
-
-    async function fazerCadastro() {
-        const res = await fetch(`${API}/register`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ name: cadNome.value, email: cadEmail.value, password: cadSenha.value })
-        });
-        if(res.ok) { alert("Cadastrado! Faça o login."); mudarAbaAuth('login'); }
-        else alert("Erro no cadastro!");
+        } else {
+            // Tenta cadastrar se não existir
+            const resCad = await fetch(`${API}/register`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name: "Jogador", email: loginEmail.value, password: loginSenha.value })
+            });
+            if(resCad.ok) alert("Conta criada! Clique em Entrar.");
+            else alert("Erro no acesso.");
+        }
     }
 
     function logout() { localStorage.removeItem('userId'); location.reload(); }
-
-    function formatarTempo(segundos) {
-        const min = Math.floor(segundos / 60).toString().padStart(2, '0');
-        const seg = (segundos % 60).toString().padStart(2, '0');
-        return `${min}:${seg}`;
-    }
 
     // ATUALIZAÇÃO AUTOMÁTICA EM 1 SEGUNDO
     async function atualizarInterface() {
         if(!USER_ID) return;
         try {
-            // BUSCA SALDO COM TRAVA ANTI-CACHE
+            // Busca o saldo com trava anti-cache
             const resUser = await fetch(`${API}/user-data/${USER_ID}?t=${Date.now()}`);
             const user = await resUser.json();
             document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
@@ -187,22 +127,15 @@
             const jogo = await resStatus.json();
             bolasSorteadas = jogo.bolas || [];
 
-            if (jogo.ganhadorRodada && !modalGanhadorAberto) {
-                document.getElementById('nomeVencedor').innerText = jogo.ganhadorRodada;
-                document.getElementById('modalGanhador').classList.remove('hidden');
-                modalGanhadorAberto = true;
-            }
-            if (jogo.fase === 'aguardando') modalGanhadorAberto = false;
-
-            document.getElementById('timerTxt').innerText = formatarTempo(jogo.tempoRestante);
+            document.getElementById('timerTxt').innerText = jogo.tempoRestante;
             document.getElementById('bolaGrande').innerText = bolasSorteadas.length > 0 ? bolasSorteadas[bolasSorteadas.length - 1] : "--";
             document.getElementById('historicoBolas').innerHTML = bolasSorteadas.map(b => `<div class="bola-sorteada">${b}</div>`).join('');
 
-            if(user.cartelas && user.cartelas.length > 0) {
+            if(user.cartelas) {
                 document.getElementById('listaCartelas').innerHTML = user.cartelas.map((c, idx) => {
                     const marcados = c.filter(num => bolasSorteadas.includes(num)).length;
                     return `<div class="cartela">
-                        <div style="font-size: 10px; font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">👤 ${user.name.toUpperCase()}</div>
+                        <div style="font-size: 10px; font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">👤 ${user.name}</div>
                         <div style="display: flex; justify-content: space-between; font-size: 9px;">
                             <span>ID #${idx+1}</span>
                             <span style="color: var(--success); font-weight: bold;">${marcados}/${c.length}</span>
@@ -224,7 +157,7 @@
 
     async function gerarPix() {
         const valor = prompt("Valor do depósito (Mínimo 10):", "10");
-        if(!valor || valor < 10) return alert("Valor mínimo R$ 10");
+        if(!valor || valor < 10) return;
         const res = await fetch(`${API}/gerar-pix`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ userId: USER_ID, valor })
@@ -237,35 +170,20 @@
         }
     }
 
-    async function enviarPedidoSaque() {
-        const valor = document.getElementById('saqueValor').value;
-        const chave = document.getElementById('saqueChave').value;
-        const res = await fetch(`${API}/pedir-saque`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: USER_ID, valor, chavePix: chave })
-        });
-        const data = await res.json();
-        if(res.ok) { alert(data.msg); document.getElementById('modalSaque').classList.add('hidden'); } 
-        else alert(data.erro);
-    }
-
-    function copiarPix() { navigator.clipboard.writeText(document.getElementById('qrTexto').innerText); alert("Copiado!"); }
-
     function mudarAba(aba) {
-        ['Sorteio', 'Cartelas', 'Ranking'].forEach(t => {
-            document.getElementById('conteudo'+t).classList.toggle('hidden', aba !== t.toLowerCase());
-            document.getElementById('tab'+t).classList.toggle('ativa', aba === t.toLowerCase());
-        });
+        document.getElementById('conteudoSorteio').classList.toggle('hidden', aba !== 'sorteio');
+        document.getElementById('conteudoCartelas').classList.toggle('hidden', aba !== 'cartelas');
+        document.getElementById('tabSorteio').classList.toggle('ativa', aba === 'sorteio');
+        document.getElementById('tabCartelas').classList.toggle('ativa', aba === 'cartelas');
     }
 
     if(USER_ID) {
         document.getElementById('telaAuth').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
-        // ATUALIZAÇÃO RÁPIDA ATIVADA
+        // ATUALIZAÇÃO RÁPIDA
         setInterval(atualizarInterface, 1000); 
         atualizarInterface();
     }
 </script>
 </body>
 </html>
-
