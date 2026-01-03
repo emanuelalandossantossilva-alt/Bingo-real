@@ -9,34 +9,39 @@
         body { font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; }
         .hidden { display: none !important; }
 
-        /* HEADER E MENU */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #0f172a; border-bottom: 2px solid var(--primary); position: sticky; top: 0; z-index: 100; }
         .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 4px; padding: 10px; }
         .menu-btn div { width: 25px; height: 3px; background: white; border-radius: 2px; }
         .menu-suspenso { position: absolute; top: 60px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 180px; text-align: left; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 2000; }
         .menu-item { padding: 15px; border-bottom: 1px solid #334155; color: white; cursor: pointer; font-size: 14px; }
 
-        /* MODAIS */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
         .modal-content { background: white; padding: 20px; border-radius: 15px; color: black; width: 85%; max-width: 320px; text-align: center; }
         .btn-valor { padding: 10px; border: 1px solid #2563eb; border-radius: 8px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; }
         .btn-copiar { background: #2563eb; color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
 
-        /* PRÊMIO COM ANIMAÇÃO */
         .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 15px; border-radius: 10px; margin-bottom: 15px; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; font-size: 20px; text-transform: uppercase; }
-        .valor-revelado { color: #fff; font-size: 34px; font-weight: 900; text-shadow: 0 0 15px #fff; animation: entradaPremio 0.5s ease-out; }
+        .valor-revelado { color: #fff; font-size: 34px; font-weight: 900; text-shadow: 0 0 15px #fff; }
         @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        @keyframes entradaPremio { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        /* GERAL */
+        .cartela { background: #f8fafc; color: #1e293b; padding: 8px; border-radius: 6px; border: 2px solid #ddd; width: 140px; margin-bottom: 10px; transition: all 0.5s ease; position: relative; }
+        .cartela-vencedora { 
+            background: linear-gradient(135deg, #fef3c7 0%, #facc15 50%, #b45309 100%) !important; 
+            border: 2px solid #78350f !important;
+            box-shadow: 0 0 25px rgba(250, 204, 21, 1);
+            transform: scale(1.1);
+            color: #451a03 !important;
+            z-index: 10;
+        }
+
+        .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 3px 0; border-radius: 3px; }
+        .marcado { background: var(--success) !important; color: white !important; }
+
         .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--primary); margin: 20px auto; max-width: 380px; box-sizing: border-box; }
         input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; }
         input.modal-in { color: black; background: #f1f5f9; border: 1px solid #cbd5e1; }
-        .cartela { background: #f8fafc; color: #1e293b; padding: 8px; border-radius: 6px; border: 2px solid var(--primary); width: 140px; margin-bottom: 10px; }
-        .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
-        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 3px 0; border-radius: 3px; }
-        .marcado { background: var(--success) !important; color: white; }
     </style>
 </head>
 <body>
@@ -99,8 +104,7 @@
         <div class="caixa-premio" id="painelPremio">
             <div class="status-acumulando">ACUMULANDO...</div>
         </div>
-        
-        <div id="timerTxt" style="font-size:24px; color:var(--primary); font-weight:bold; margin-bottom:10px;">00:00</div>
+        <div id="timerTxt" style="font-size:24px; color:var(--primary); font-weight:bold; margin-bottom:10px;">05:00</div>
         <div id="playerSaldo" style="color:var(--success); font-weight:bold; font-size:18px; margin-bottom:10px;">Saldo: R$ 0,00</div>
 
         <div style="background: #0f172a; padding: 12px; border-radius: 10px; margin-bottom:15px; border: 1px solid #334155;">
@@ -120,6 +124,22 @@
 <script>
     const API = "https://bingo-backend-89dt.onrender.com";
     let USER_ID = localStorage.getItem('userId');
+    let cartelasVencedorasExibidas = new Set();
+    let segundosRestantes = 300; // 5 minutos iniciais
+
+    function formatarTempo(s) {
+        const min = Math.floor(s / 60);
+        const seg = s % 60;
+        return `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+    }
+
+    // Temporizador que desce de 1 em 1 segundo
+    setInterval(() => {
+        if (segundosRestantes > 0) {
+            segundosRestantes--;
+            document.getElementById('timerTxt').innerText = formatarTempo(segundosRestantes);
+        }
+    }, 1000);
 
     function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
     function logout() { localStorage.clear(); location.reload(); }
@@ -148,7 +168,6 @@
         document.getElementById('valorInputManual').value = "";
         document.getElementById('modalValor').classList.remove('hidden'); 
     }
-    
     function setValor(v) { document.getElementById('valorInputManual').value = v; }
 
     async function confirmarGerarPix() {
@@ -169,7 +188,6 @@
         navigator.clipboard.writeText(texto).then(() => { alert("✅ Código Copiado!"); });
     }
 
-    // --- INTERFACE COM REVELAÇÃO APENAS NO SORTEIO ---
     async function atualizarInterface() {
         if(!USER_ID) return;
         try {
@@ -179,22 +197,18 @@
             const user = await resUser.json();
 
             document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
-            document.getElementById('timerTxt').innerText = jogo.tempoRestante || "00:00";
             
+            // Sincroniza o tempo com o servidor apenas para evitar desvio, mas mantém 1s no display
+            if(jogo.tempoSegundos) segundosRestantes = jogo.tempoSegundos;
+
             const bolas = (jogo.bolas && jogo.bolas.length > 0) ? jogo.bolas : [];
             const painel = document.getElementById('painelPremio');
             
-            // REGRAS DE EXIBIÇÃO:
-            // Se o jogo estiver na fase de sorteio OU finalizado, mostra o valor.
-            // Se estiver "aguardando", mostra apenas "ACUMULANDO..."
             if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') {
-                const valorExibir = jogo.premioAcumulado || 0;
-                painel.innerHTML = `
-                    <div style="font-size:12px; font-weight:bold; color: #fff;">PRÊMIO DA RODADA</div>
-                    <div class="valor-revelado">R$ ${valorExibir.toFixed(2)}</div>
-                `;
+                painel.innerHTML = `<div style="font-size:12px; font-weight:bold; color: #fff;">PRÊMIO DA RODADA</div><div class="valor-revelado">R$ ${(jogo.premioAcumulado || 0).toFixed(2)}</div>`;
             } else {
                 painel.innerHTML = `<div class="status-acumulando">ACUMULANDO...</div>`;
+                cartelasVencedorasExibidas.clear();
             }
 
             if (bolas.length > 0) {
@@ -206,26 +220,24 @@
             }
 
             if(user.cartelas) {
-                document.getElementById('listaCartelas').innerHTML = user.cartelas.map((c) => `
-                    <div class="cartela">
-                        <div style="font-size:9px; border-bottom:1px solid #ddd; margin-bottom:4px; font-weight:bold;">👤 ${user.name}</div>
-                        <div class="grid-cartela">${c.map(num => `<div class="num-c ${bolas.includes(num)?'marcado':''}">${num}</div>`).join('')}</div>
-                    </div>
-                `).join('');
+                document.getElementById('listaCartelas').innerHTML = user.cartelas.map((c, index) => {
+                    const ganhou = c.every(num => bolas.includes(num));
+                    const classeVitoria = ganhou ? 'cartela-vencedora' : '';
+                    return `
+                        <div class="cartela ${classeVitoria}">
+                            <div style="font-size:9px; border-bottom:1px solid #ddd; margin-bottom:4px; font-weight:bold;">👤 ${user.name} ${ganhou ? '🏆 BINGO!' : ''}</div>
+                            <div class="grid-cartela">${c.map(num => `<div class="num-c ${bolas.includes(num)?'marcado':''}">${num}</div>`).join('')}</div>
+                        </div>
+                    `;
+                }).join('');
             }
         } catch(e) {}
     }
 
     async function comprarCartelasMultiplas() {
-        const inputQtd = document.getElementById('qtdCartelas');
-        const qtd = parseInt(inputQtd.value);
+        const qtd = parseInt(document.getElementById('qtdCartelas').value);
         if(!qtd || qtd < 1) return;
-        
-        await fetch(`${API}/comprar-com-saldo`, { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) 
-        });
+        await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
         atualizarInterface();
     }
 
