@@ -45,7 +45,7 @@ app.post('/gerar-pix', async (req, res) => {
                 payment_method_id: 'pix',
                 payer: { email: user.email },
                 notification_url: 'https://bingo-backend-89dt.onrender.com/webhook',
-                external_reference: userId // GUARDAMOS O ID AQUI PARA O WEBHOOK ACHAR DEPOIS
+                external_reference: userId
             }
         });
         res.json({
@@ -55,37 +55,66 @@ app.post('/gerar-pix', async (req, res) => {
     } catch (error) { res.status(500).json({ erro: "Erro PIX" }); }
 });
 
-// --- WEBHOOK CORRIGIDO (SALDO CAI AQUI) ---
+// --- WEBHOOK (SALDO AUTOMÁTICO) ---
 app.post('/webhook', async (req, res) => {
-    const { action, data, type } = req.body;
-    
-    // O Mercado Pago pode enviar o ID de várias formas, aqui pegamos todas
-    const id = (data && data.id) || req.query["data.id"] || (req.body.resource && req.body.resource.split('/').pop());
-
+    const { action, data } = req.body;
+    const id = (data && data.id) || req.query["data.id"];
     if (id) {
         try {
             const payment = new Payment(client);
             const p = await payment.get({ id });
-            
             if (p.status === 'approved') {
-                const valorPago = p.transaction_amount;
-                const emailUsuario = p.payer.email;
-                
-                // Tenta achar pelo ID que salvamos ou pelo E-mail
-                const user = await User.findOneAndUpdate(
-                    { $or: [{ _id: p.external_reference }, { email: emailUsuario }] }, 
-                    { $inc: { saldo: valorPago } },
-                    { new: true }
+                await User.findOneAndUpdate(
+                    { $or: [{ _id: p.external_reference }, { email: p.payer.email }] }, 
+                    { $inc: { saldo: p.transaction_amount } }
                 );
-                
-                if (user) console.log(`Sucesso: R$ ${valorPago} adicionado para ${user.name}`);
             }
-        } catch (e) { console.error("Erro no processamento do Webhook:", e); }
+        } catch (e) { console.error(e); }
     }
-    res.sendStatus(200); // Sempre avisar ao Mercado Pago que recebemos o aviso
+    res.sendStatus(200);
 });
 
-// CRONÔMETRO E SORTEIO (MANTIDOS IGUAIS)
+// --- COMPRA DE CARTELAS (CORRIGIDA: ACUMULA PARA TODOS) ---
+app.post('/comprar-com-saldo', async (req, res) => {
+    try {
+        const { usuarioId } = req.body;
+        // Se o seu HTML enviar uma quantidade, ele usa. Se não, assume 1.
+        const qtd = req.body.quantidade || 1; 
+        const custoTotal = qtd * 2;
+
+        const user = await User.findById(usuarioId);
+        
+        if (user && user.saldo >= custoTotal) {
+            user.saldo -= custoTotal; // Tira o valor total do saldo
+            
+            // Loop para criar cada cartela e somar no prêmio global
+            for (let i = 0; i < qtd; i++) {
+                let c = [];
+                while(c.length < 10) { 
+                    let n = Math.floor(Math.random() * 50) + 1; 
+                    if(!c.includes(n)) c.push(n); 
+                }
+                
+                if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') { 
+                    user.cartelasProximaRodada.push(c); 
+                    premioReservadoProxima += 1.5; 
+                } else { 
+                    user.cartelas.push(c); 
+                    jogo.premioAcumulado += 1.5; // SOMA 1,50 PARA CADA CARTELA COMPRADA
+                }
+            }
+            
+            await user.save();
+            res.json({ msg: "OK", saldoRestante: user.saldo });
+        } else {
+            res.status(400).send("Saldo insuficiente");
+        }
+    } catch (error) {
+        res.status(500).send("Erro na compra");
+    }
+});
+
+// CRONÔMETRO
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
         if (jogo.tempoRestante > 0) jogo.tempoRestante--;
@@ -125,54 +154,21 @@ function finalizarRodada() {
                 $set: { cartelas: userEsp.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
+        // Próxima rodada começa com o que foi reservado
         jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: premioReservadoProxima, ganhadorRodada: null };
         premioReservadoProxima = 0;
     }, 15000);
 }
 
-// COMPRA DE CARTELAS
-app.post('/comprar-com-saldo', async (req, res) => {
-    const user = await User.findById(req.body.usuarioId);
-    if (user && user.saldo >= 2) {
-        user.saldo -= 2;
-        let c = [];
-        while(c.length < 10) { let n = Math.floor(Math.random() * 50) + 1; if(!c.includes(n)) c.push(n); }
-        
-        if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') { 
-            user.cartelasProximaRodada.push(c); 
-            premioReservadoProxima += 1.5; 
-        } else { 
-            user.cartelas.push(c); 
-            jogo.premioAcumulado += 1.5; 
-        }
-        
-        await user.save();
-        res.json({ msg: "OK", totalCartelasAtivas: user.cartelas.length });
-    } else res.status(400).send("Saldo insuficiente");
-});
-
-// ROTAS DE STATUS
-app.get('/game-status', (req, res) => {
-    // Adicionamos o total de cartelas do jogo para o HTML ler o prêmio
-    res.json({
-        ...jogo,
-        totalCartelasAtivas: (jogo.premioAcumulado / 1.5)
-    });
-});
-
+// ROTAS DE STATUS E AUTH
+app.get('/game-status', (req, res) => res.json(jogo));
 app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
-
 app.post('/login', async (req, res) => {
     const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
     if(u) res.json({ user: u }); else res.status(401).send();
 });
-
 app.post('/register', async (req, res) => {
-    try { 
-        const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password }); 
-        await u.save(); 
-        res.json({ok:true}); 
-    } catch(e) { res.status(400).send(); }
+    try { const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password }); await u.save(); res.json({ok:true}); } catch(e) { res.status(400).send(); }
 });
 
 const PORT = process.env.PORT || 3000;
