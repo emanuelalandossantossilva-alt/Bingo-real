@@ -14,20 +14,21 @@ const client = new MercadoPagoConfig({
 
 // 2. CONEXÃO MONGO
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log("Conectado ao MongoDB!"))
-    .catch(err => console.error("Erro Mongo:", err));
+    .then(() => console.log("Conectado ao MongoDB com sucesso!"))
+    .catch(err => console.error("Erro ao conectar no MongoDB:", err));
 
 const User = mongoose.model('User', new mongoose.Schema({
     name: String, 
     email: { type: String, unique: true }, 
     senha: { type: String },
     saldo: { type: Number, default: 0 }, 
-    cartelas: { type: Array, default: [] }
+    cartelas: { type: Array, default: [] },
+    cartelasProximaRodada: { type: Array, default: [] } // NOVO: Guarda cartelas compradas durante o sorteio
 }));
 
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
 
-// 3. LOOP DO JOGO
+// 3. LOOP DE TEMPO DO JOGO
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
         if (jogo.tempoRestante > 0) { jogo.tempoRestante--; } 
@@ -56,8 +57,19 @@ function iniciarSorteio() {
                         jogo.ganhadorRodada = u.name;
                         jogo.fase = 'finalizado';
                         clearInterval(intervalo);
+                        
+                        // RESET COM TRANSIÇÃO DE CARTELAS RESERVADAS
                         setTimeout(async () => {
                             await User.updateMany({}, { cartelas: [] });
+                            
+                            // Move cartelas da espera para o jogo principal
+                            const emEspera = await User.find({ "cartelasProximaRodada.0": { $exists: true } });
+                            for (let userEsp of emEspera) {
+                                await User.findByIdAndUpdate(userEsp._id, {
+                                    $set: { cartelas: userEsp.cartelasProximaRodada, cartelasProximaRodada: [] }
+                                });
+                            }
+
                             jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
                         }, 15000);
                         return;
@@ -78,38 +90,6 @@ function iniciarSorteio() {
 // 4. ROTAS
 app.get('/game-status', (req, res) => res.json(jogo));
 
-app.get('/ranking-bingo', async (req, res) => {
-    const usuarios = await User.find({ "cartelas.0": { $exists: true } });
-    let ranking = [];
-    usuarios.forEach(u => {
-        let melhor = 0;
-        u.cartelas.forEach(c => {
-            let acertos = c.filter(n => jogo.bolas.includes(n)).length;
-            if (acertos > melhor) melhor = acertos;
-        });
-        if (melhor > 0) ranking.push({ name: u.name, acertos: melhor });
-    });
-    res.json(ranking.sort((a,b) => b.acertos - a.acertos).slice(0, 10));
-});
-
-app.get('/user-data/:id', async (req, res) => {
-    const u = await User.findById(req.params.id);
-    res.json(u);
-});
-
-app.post('/register', async (req, res) => {
-    try {
-        const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password });
-        await u.save(); 
-        res.json({ok:true});
-    } catch(e) { res.status(400).send(); }
-});
-
-app.post('/login', async (req, res) => {
-    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    if(u) res.json({ user: u }); else res.status(401).send();
-});
-
 app.post('/comprar-com-saldo', async (req, res) => {
     const user = await User.findById(req.body.usuarioId);
     if (user && user.saldo >= 2) {
@@ -120,44 +100,36 @@ app.post('/comprar-com-saldo', async (req, res) => {
             let n = Math.floor(Math.random() * 50) + 1;
             if(!c.includes(n)) c.push(n);
         }
-        user.cartelas.push(c.sort((a,b)=>a-b));
-        await user.save();
-        res.json({ ok: true });
-    } else res.status(400).send();
-});
+        const novaCartela = c.sort((a,b)=>a-b);
 
-app.post('/gerar-pix', async (req, res) => {
-    const { userId, valor } = req.body;
-    const payment = new Payment(client);
-    try {
-        const result = await payment.create({
-            body: {
-                transaction_amount: Number(valor),
-                description: `Bingo Real`,
-                payment_method_id: 'pix',
-                payer: { email: 'contato@bingoreal.com' },
-                metadata: { user_id: userId }
-            }
-        });
-        res.json({
-            qr_code: result.point_of_interaction.transaction_data.qr_code,
-            qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64
-        });
-    } catch (e) { res.status(500).json(e); }
-});
-
-app.post('/webhook', async (req, res) => {
-    const { data, type } = req.body;
-    if (type === 'payment') {
-        const payment = new Payment(client);
-        const p = await payment.get({ id: data.id });
-        if (p.status === 'approved') {
-            await User.findByIdAndUpdate(p.metadata.user_id, { $inc: { saldo: p.transaction_amount } });
+        if (jogo.fase === 'sorteio') {
+            user.cartelasProximaRodada.push(novaCartela);
+            await user.save();
+            res.json({ msg: "Sorteio em andamento! Sua cartela valerá para a PRÓXIMA rodada." });
+        } else {
+            user.cartelas.push(novaCartela);
+            await user.save();
+            res.json({ msg: "Cartela comprada com sucesso para esta rodada!" });
         }
-    }
-    res.sendStatus(200);
+    } else res.status(400).send("Saldo insuficiente");
 });
+
+// (Mantenha as rotas de Login, Register, Webhook e Ranking iguais às anteriores)
+app.post('/login', async (req, res) => {
+    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
+    if(u) res.json({ user: u }); else res.status(401).send();
+});
+
+app.post('/register', async (req, res) => {
+    try {
+        const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password });
+        await u.save(); 
+        res.json({ok:true});
+    } catch(e) { res.status(400).send(); }
+});
+
+app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor rodando!`));
 
