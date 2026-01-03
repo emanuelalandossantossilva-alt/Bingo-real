@@ -22,25 +22,15 @@
         /* Cartelas e Grid */
         .container-cartelas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
         .cartela { 
-            background: #f8fafc; 
-            color: #1e293b; 
-            padding: 10px; 
-            border-radius: 8px; 
-            border: 2px solid var(--primary); 
-            width: 155px; 
-            min-height: 130px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: #f8fafc; color: #1e293b; padding: 10px; border-radius: 8px; border: 2px solid var(--primary); 
+            width: 155px; min-height: 130px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 5px; }
         .numero { font-size: 11px; font-weight: bold; background: #e2e8f0; padding: 4px 0; border-radius: 4px; }
         .marcado { background: var(--success) !important; color: white; }
 
-        /* Ranking */
-        .item-ranking { background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--primary); }
-        .pontos { background: var(--success); color: white; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: bold; }
-
         /* Base UI */
-        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
         button { width: 100%; padding: 14px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin: 5px 0; text-transform: uppercase; }
         .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 15px; border-radius: 10px; margin-bottom: 15px; min-height: 70px; display: flex; align-items: center; justify-content: center; }
         .abas { display: flex; background: #0f172a; border-radius: 8px; padding: 4px; margin-bottom: 10px; }
@@ -61,6 +51,17 @@
         <div id="qrTexto" style="font-size:10px; word-break:break-all; margin:10px 0; background:#eee; padding:8px;"></div>
         <button onclick="copiarPix()" style="background:#2563eb; color:white;">COPIAR CÓDIGO</button>
         <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="background:#ef4444; color:white;">FECHAR</button>
+    </div>
+</div>
+
+<div id="modalSaque" class="modal hidden">
+    <div class="modal-content" style="background: #1e293b; color: white;">
+        <h3 style="color: var(--primary);">Solicitar Saque</h3>
+        <p style="font-size: 11px; color: #94a3b8;">Mínimo para saque: R$ 20,00</p>
+        <input type="number" id="saqueValor" placeholder="Valor (R$)">
+        <input type="text" id="saqueChave" placeholder="Sua Chave PIX">
+        <button onclick="enviarPedidoSaque()" style="background: var(--success); color: white;">PEDIR SAQUE</button>
+        <button onclick="document.getElementById('modalSaque').classList.add('hidden')" style="background: #ef4444; color: white;">FECHAR</button>
     </div>
 </div>
 
@@ -129,6 +130,7 @@
 
         <button style="background: #2563eb; color: white;" onclick="comprarCartelas()">COMPRAR CARTELA (R$ 2,00)</button>
         <button style="background: #16a34a; color: white;" onclick="gerarPix()">DEPOSITAR</button>
+        <button style="background: #9333ea; color: white;" onclick="document.getElementById('modalSaque').classList.remove('hidden')">SACAR SALDO</button>
         <button style="background: transparent; color: #94a3b8; font-size: 10px;" onclick="logout()">SAIR</button>
     </div>
 </div>
@@ -184,7 +186,6 @@
             const jogo = await resStatus.json();
             bolasSorteadas = jogo.bolas || [];
 
-            // Ganhador
             if (jogo.ganhadorRodada && !modalGanhadorAberto) {
                 document.getElementById('nomeVencedor').innerText = jogo.ganhadorRodada;
                 document.getElementById('modalGanhador').classList.remove('hidden');
@@ -192,7 +193,6 @@
             }
             if (jogo.fase === 'aguardando') modalGanhadorAberto = false;
 
-            // Prêmio
             if (jogo.premioAcumulado > 0 && bolasSorteadas.length > 0) {
                 document.getElementById('suspenseTxt').classList.add('hidden');
                 document.getElementById('valorRevelado').classList.remove('hidden');
@@ -210,11 +210,9 @@
             const user = await resUser.json();
             document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
             
-            // RENDERIZAÇÃO DAS CARTELAS COM NOME E CONTADOR
             if(user.cartelas && user.cartelas.length > 0) {
                 document.getElementById('listaCartelas').innerHTML = user.cartelas.map((c, idx) => {
                     const marcados = c.filter(num => bolasSorteadas.includes(num)).length;
-                    const total = c.length;
                     return `
                         <div class="cartela">
                             <div style="font-size: 10px; font-weight: bold; color: #1e293b; border-bottom: 1px solid #ccc; margin-bottom: 5px; padding-bottom: 2px;">
@@ -222,7 +220,7 @@
                             </div>
                             <div style="display: flex; justify-content: space-between; font-size: 9px; color: #64748b; margin-bottom: 5px;">
                                 <span>ID #${idx+1}</span>
-                                <span style="color: var(--success); font-weight: bold;">${marcados}/${total}</span>
+                                <span style="color: var(--success); font-weight: bold;">${marcados}/${c.length}</span>
                             </div>
                             <div class="grid-cartela">
                                 ${c.map(num => `<div class="numero ${bolasSorteadas.includes(num) ? 'marcado' : ''}">${num}</div>`).join('')}
@@ -231,15 +229,6 @@
                     `;
                 }).join('');
             }
-
-            const resRanking = await fetch(`${API}/ranking-bingo`);
-            const ranking = await resRanking.json();
-            document.getElementById('listaRanking').innerHTML = ranking.map((item, i) => `
-                <div class="item-ranking">
-                    <span><b>${i+1}º</b> ${item.name}</span>
-                    <span class="pontos">${item.acertos} ACERTOS</span>
-                </div>
-            `).join('');
         } catch(e) {}
     }
 
@@ -248,7 +237,8 @@
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ usuarioId: USER_ID })
         });
-        if(res.ok) { alert("Comprado!"); atualizarInterface(); } else alert("Erro saldo!");
+        const data = await res.json();
+        if(res.ok) { alert(data.msg); atualizarInterface(); } else alert("Erro saldo!");
     }
 
     async function gerarPix() {
@@ -262,6 +252,29 @@
             document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
             document.getElementById('qrTexto').innerText = data.qr_code;
             document.getElementById('modalPix').classList.remove('hidden');
+        }
+    }
+
+    // NOVA FUNÇÃO DE SAQUE
+    async function enviarPedidoSaque() {
+        const valor = document.getElementById('saqueValor').value;
+        const chave = document.getElementById('saqueChave').value;
+
+        if(!valor || !chave) return alert("Preencha valor e chave PIX!");
+
+        const res = await fetch(`${API}/pedir-saque`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: USER_ID, valor: valor, chavePix: chave })
+        });
+
+        const data = await res.json();
+        if(res.ok) {
+            alert(data.msg);
+            document.getElementById('modalSaque').classList.add('hidden');
+            atualizarInterface();
+        } else {
+            alert(data.erro);
         }
     }
 
