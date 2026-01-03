@@ -143,4 +143,3 @@ if (USER_ID) {
 } else {
     mostrarTela('telaLogin');
 }
-
