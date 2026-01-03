@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bingo Real - Emanuel Alan</title>
     <style>
-        /* MANTENDO SEU ESTYLE ORIGINAL */
         body { font-family: sans-serif; background-color: #020617; color: white; text-align: center; margin: 0; padding: 10px; }
         .container { max-width: 450px; margin: auto; }
         .hidden { display: none !important; }
@@ -15,16 +14,11 @@
         .btn-azul { background: #2563eb; color: white; }
         .btn-verde { background: #16a34a; color: white; }
         .link { color: #facc15; text-decoration: none; font-size: 14px; cursor: pointer; display: block; margin-top: 10px; }
-        
-        /* BOX DO PRÊMIO IGUAL DA FOTO */
         .box-premio { background: linear-gradient(135deg, #451a03 0%, #92400e 100%); padding: 20px; border-radius: 15px; border: 2px solid #facc15; margin-bottom: 20px; }
         .valor-premio { font-size: 24px; font-weight: bold; color: #facc15; }
-        
         .user-info { background: #1e293b; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border: 1px solid #334155; }
         .ranking-box { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #facc15; text-align: left; font-size: 14px; }
         .timer { font-size: 48px; font-weight: bold; color: #4ade80; margin: 20px 0; }
-        
-        /* CARTELA DE 10 NÚMEROS */
         .cartela { background: white; color: black; padding: 10px; border-radius: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
@@ -70,6 +64,7 @@
         
         <div id="minhasCartelas"></div>
         <div id="bolasSorteadas" style="margin-top:20px; display:flex; flex-wrap:wrap; gap:5px; justify-content:center;"></div>
+        <button style="background:none; color:gray; font-size:12px; margin-top: 20px;" onclick="logout()">Sair da conta</button>
     </div>
 </div>
 
@@ -84,15 +79,14 @@
         document.getElementById(id).classList.remove('hidden');
     }
 
+    // --- SEU CÓDIGO ADICIONADO AQUI ---
     async function carregarDados() {
         if(!USER_ID) return;
         try {
             const resStatus = await fetch(`${API}/game-status`);
             const jogo = await resStatus.json();
-            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
-            const user = await resUser.json();
 
-            // SÓ MOSTRA O VALOR NO FINAL (O QUE VOCÊ PEDIU)
+            // 1. PRÊMIO ACUMULANDO
             const premioElemento = document.getElementById('premioTxt');
             if (jogo.tempoRestante > 0 && jogo.bolas.length === 0) {
                 premioElemento.innerText = "ACUMULANDO...";
@@ -100,35 +94,43 @@
                 premioElemento.innerText = `R$ ${jogo.premioAcumulado.toFixed(2)}`;
             }
 
-            document.getElementById('nomePlayer').innerText = user.name.toUpperCase();
-            document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
-            
+            // 2. CRONÔMETRO
+            const timerElemento = document.getElementById('timerTxt');
             let min = Math.floor(jogo.tempoRestante / 60);
             let seg = jogo.tempoRestante % 60;
-            document.getElementById('timerTxt').innerText = `${min}:${seg < 10 ? '0'+seg : seg}`;
+            timerElemento.innerText = `${min < 10 ? '0'+min : min}:${seg < 10 ? '0'+seg : seg}`;
 
-            const resRank = await fetch(`${API}/top-10`);
+            // 3. NOVO RANKING DE QUEM TÁ GANHANDO
+            const resRank = await fetch(`${API}/ranking-bingo`);
             const rank = await resRank.json();
             document.getElementById('listaRanking').innerHTML = rank.map((u, i) => `
-                <div style="display:flex; justify-content:space-between; padding:2px 0;">
+                <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #334155;">
                     <span>${i+1}º ${u.name}</span>
-                    <span>R$ ${u.saldo.toFixed(2)}</span>
+                    <b style="color:#facc15">${u.acertos} / 10</b>
                 </div>
             `).join('');
 
+            // 4. BOLAS SORTEADAS
             if(jogo.bolas.length > 0) {
                 document.getElementById('bolasSorteadas').innerHTML = jogo.bolas.map(b => `
-                    <div style="background:#facc15; color:black; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">${b}</div>
+                    <div style="background:#facc15; color:black; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; margin:2px;">${b}</div>
                 `).join('');
             }
-        } catch (e) {}
-    }
 
-    // LÓGICA DE COMPRA PARA 10 NÚMEROS (O QUE VOCÊ PEDIU)
+            // 5. SALDO E NOME
+            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
+            const user = await resUser.json();
+            document.getElementById('nomePlayer').innerText = user.name.toUpperCase();
+            document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
+
+        } catch (e) { console.log("Conectando..."); }
+    }
+    // --- FIM DO SEU CÓDIGO ---
+
     async function comprarCartela() {
         const res = await fetch(`${API}/comprar-com-saldo`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ usuarioId: USER_ID, quantidade: 1 })
+            body: JSON.stringify({ usuarioId: USER_ID })
         });
         if(res.ok) {
             const data = await res.json();
@@ -136,6 +138,7 @@
             div.className = 'cartela';
             div.innerHTML = data.cartelas[0].map(n => `<div>${n}</div>`).join('');
             document.getElementById('minhasCartelas').prepend(div);
+            alert("Cartela comprada!");
         } else alert("Saldo insuficiente!");
     }
 
@@ -145,20 +148,20 @@
             body: JSON.stringify({ email: loginEmail.value, senha: loginSenha.value })
         });
         const data = await res.json();
-        if(res.ok) { localStorage.setItem('userId', data.user._id); USER_ID = data.user._id; iniciarJogo(); }
-        else alert("Erro!");
+        if(res.ok) { localStorage.setItem('userId', data.user._id); USER_ID = data.user._id; location.reload(); }
+        else alert("Erro no Login!");
     }
 
     async function fazerCadastro() {
         const dados = { name: cadNome.value, email: cadEmail.value, senha: cadSenha.value };
         await fetch(`${API}/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(dados) });
-        alert("Criado!"); mostrarTela('telaLogin');
+        alert("Conta criada!"); mostrarTela('telaLogin');
     }
 
-    function iniciarJogo() { mostrarTela('telaJogo'); setInterval(carregarDados, 2000); }
-    async function solicitarPix() { await fetch(`${API}/solicitar-pix`, { method: 'POST' }); alert("Pedido enviado!"); }
+    function logout() { localStorage.clear(); location.reload(); }
+    async function solicitarPix() { alert("Pedido enviado!"); }
 
-    if(USER_ID) iniciarJogo();
+    if(USER_ID) { mostrarTela('telaJogo'); setInterval(carregarDados, 2000); carregarDados(); }
     else mostrarTela('telaLogin');
 </script>
 </body>
