@@ -98,7 +98,6 @@
         <div class="caixa-premio" id="painelPremio">
             <div class="status-acumulando">ACUMULANDO...</div>
         </div>
-        
         <div id="timerTxt" style="font-size:24px; color:var(--primary); font-weight:bold; margin-bottom:10px;">00:00</div>
         <div id="playerSaldo" style="color:var(--success); font-weight:bold; font-size:18px; margin-bottom:10px;">Saldo: R$ 0,00</div>
 
@@ -143,14 +142,29 @@
         if(res.ok) { alert("Cadastrado! Faça login."); alternarAuth(false); }
     }
 
-    function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
-    function setValor(v) { document.getElementById('valorInputManual').value = v; }
+    // GESTÃO DE VALOR PIX (CORRIGE O ERRO DE 10 APARECER 20)
+    function abrirModalValor() { 
+        document.getElementById('valorInputManual').value = ""; // Limpa ao abrir
+        document.getElementById('modalValor').classList.remove('hidden'); 
+    }
+    
+    function setValor(v) { 
+        document.getElementById('valorInputManual').value = v; // Substitui o valor, não soma
+    }
 
     async function confirmarGerarPix() {
-        const valor = document.getElementById('valorInputManual').value;
-        if (!valor || valor < 10) return alert("Mínimo R$ 10");
+        const vInput = document.getElementById('valorInputManual').value;
+        const valorFinal = parseFloat(vInput);
+        
+        if (!valorFinal || valorFinal < 10) return alert("Mínimo R$ 10");
+        
         document.getElementById('modalValor').classList.add('hidden');
-        const res = await fetch(`${API}/gerar-pix`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: USER_ID, valor: parseFloat(valor) }) });
+        const res = await fetch(`${API}/gerar-pix`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ userId: USER_ID, valor: valorFinal }) 
+        });
+        
         const data = await res.json();
         if (data.qr_code_base64) {
             document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
@@ -159,18 +173,9 @@
         }
     }
 
-    // FUNÇÃO DE COPIAR ATUALIZADA (SEM TECLADO)
     function copiarCodigoPix() {
         const texto = document.getElementById('pixCopiaCola').value;
-        navigator.clipboard.writeText(texto).then(() => {
-            alert("✅ Código Pix copiado com sucesso!");
-        }).catch(err => {
-            // Caso falhe o clipboard moderno (em navegadores antigos)
-            const temp = document.getElementById('pixCopiaCola');
-            temp.select();
-            document.execCommand('copy');
-            alert("✅ Código Pix copiado!");
-        });
+        navigator.clipboard.writeText(texto).then(() => { alert("✅ Código Copiado!"); });
     }
 
     async function atualizarInterface() {
@@ -221,4 +226,3 @@
 </script>
 </body>
 </html>
-
