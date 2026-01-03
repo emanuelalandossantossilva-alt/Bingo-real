@@ -22,11 +22,12 @@
         .btn-valor { padding: 10px; border: 1px solid #2563eb; border-radius: 8px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; }
         .btn-copiar { background: #2563eb; color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
 
-        /* PRÊMIO */
+        /* PRÊMIO COM ANIMAÇÃO */
         .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 15px; border-radius: 10px; margin-bottom: 15px; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; font-size: 20px; text-transform: uppercase; }
-        .valor-revelado { color: #fff; font-size: 34px; font-weight: 900; text-shadow: 0 0 15px #fff; }
+        .valor-revelado { color: #fff; font-size: 34px; font-weight: 900; text-shadow: 0 0 15px #fff; animation: entradaPremio 0.5s ease-out; }
         @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes entradaPremio { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         /* GERAL */
         .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--primary); margin: 20px auto; max-width: 380px; box-sizing: border-box; }
@@ -98,6 +99,7 @@
         <div class="caixa-premio" id="painelPremio">
             <div class="status-acumulando">ACUMULANDO...</div>
         </div>
+        
         <div id="timerTxt" style="font-size:24px; color:var(--primary); font-weight:bold; margin-bottom:10px;">00:00</div>
         <div id="playerSaldo" style="color:var(--success); font-weight:bold; font-size:18px; margin-bottom:10px;">Saldo: R$ 0,00</div>
 
@@ -142,29 +144,18 @@
         if(res.ok) { alert("Cadastrado! Faça login."); alternarAuth(false); }
     }
 
-    // GESTÃO DE VALOR PIX (CORRIGE O ERRO DE 10 APARECER 20)
     function abrirModalValor() { 
-        document.getElementById('valorInputManual').value = ""; // Limpa ao abrir
+        document.getElementById('valorInputManual').value = "";
         document.getElementById('modalValor').classList.remove('hidden'); 
     }
     
-    function setValor(v) { 
-        document.getElementById('valorInputManual').value = v; // Substitui o valor, não soma
-    }
+    function setValor(v) { document.getElementById('valorInputManual').value = v; }
 
     async function confirmarGerarPix() {
-        const vInput = document.getElementById('valorInputManual').value;
-        const valorFinal = parseFloat(vInput);
-        
-        if (!valorFinal || valorFinal < 10) return alert("Mínimo R$ 10");
-        
+        const val = parseFloat(document.getElementById('valorInputManual').value);
+        if (!val || val < 10) return alert("Mínimo R$ 10");
         document.getElementById('modalValor').classList.add('hidden');
-        const res = await fetch(`${API}/gerar-pix`, { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ userId: USER_ID, valor: valorFinal }) 
-        });
-        
+        const res = await fetch(`${API}/gerar-pix`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: USER_ID, valor: val }) });
         const data = await res.json();
         if (data.qr_code_base64) {
             document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
@@ -178,6 +169,7 @@
         navigator.clipboard.writeText(texto).then(() => { alert("✅ Código Copiado!"); });
     }
 
+    // --- INTERFACE COM REVELAÇÃO APENAS NO SORTEIO ---
     async function atualizarInterface() {
         if(!USER_ID) return;
         try {
@@ -185,20 +177,34 @@
             const jogo = await resStatus.json();
             const resUser = await fetch(`${API}/user-data/${USER_ID}?t=${Date.now()}`);
             const user = await resUser.json();
+
             document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
             document.getElementById('timerTxt').innerText = jogo.tempoRestante || "00:00";
-            const bolas = jogo.bolas || [];
-            const vTotal = (jogo.totalCartelasAtivas || 0) * 1.50;
+            
+            const bolas = (jogo.bolas && jogo.bolas.length > 0) ? jogo.bolas : [];
             const painel = document.getElementById('painelPremio');
+            
+            // REGRAS DE EXIBIÇÃO:
+            // Se o jogo estiver na fase de sorteio OU finalizado, mostra o valor.
+            // Se estiver "aguardando", mostra apenas "ACUMULANDO..."
+            if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') {
+                const valorExibir = jogo.premioAcumulado || 0;
+                painel.innerHTML = `
+                    <div style="font-size:12px; font-weight:bold; color: #fff;">PRÊMIO DA RODADA</div>
+                    <div class="valor-revelado">R$ ${valorExibir.toFixed(2)}</div>
+                `;
+            } else {
+                painel.innerHTML = `<div class="status-acumulando">ACUMULANDO...</div>`;
+            }
+
             if (bolas.length > 0) {
-                painel.innerHTML = `<div style="font-size:12px; font-weight:bold;">PRÊMIO DA RODADA</div><div class="valor-revelado">R$ ${vTotal.toFixed(2)}</div>`;
                 document.getElementById('bolaGrande').innerText = bolas[bolas.length - 1];
                 document.getElementById('historicoBolas').innerHTML = bolas.map(b => `<div style="width:25px; height:25px; background:white; color:black; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;">${b}</div>`).join('');
             } else {
-                painel.innerHTML = `<div class="status-acumulando">ACUMULANDO...</div>`;
                 document.getElementById('bolaGrande').innerText = "--";
                 document.getElementById('historicoBolas').innerHTML = "";
             }
+
             if(user.cartelas) {
                 document.getElementById('listaCartelas').innerHTML = user.cartelas.map((c) => `
                     <div class="cartela">
@@ -211,10 +217,15 @@
     }
 
     async function comprarCartelasMultiplas() {
-        const qtd = document.getElementById('qtdCartelas').value;
-        for(let i=0; i < qtd; i++) {
-            await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID }) });
-        }
+        const inputQtd = document.getElementById('qtdCartelas');
+        const qtd = parseInt(inputQtd.value);
+        if(!qtd || qtd < 1) return;
+        
+        await fetch(`${API}/comprar-com-saldo`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) 
+        });
         atualizarInterface();
     }
 
@@ -226,3 +237,4 @@
 </script>
 </body>
 </html>
+
