@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 1. CONFIGURAÇÃO MERCADO PAGO (USE O SEU TOKEN)
+// 1. CONFIGURAÇÃO MERCADO PAGO
 const client = new MercadoPagoConfig({ 
     accessToken: 'APP_USR-2683158167668377-123121-4666c74759e0eac123b8c4c23bf7c1f1-485513741' 
 });
@@ -32,19 +32,6 @@ const Saque = mongoose.model('Saque', new mongoose.Schema({
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
 let premioReservadoProxima = 0;
 
-// --- ROTA DE EMERGÊNCIA (PARA TESTAR SALDO) ---
-app.get('/add-saldo/:email/:valor', async (req, res) => {
-    try {
-        const user = await User.findOneAndUpdate(
-            { email: req.params.email }, 
-            { $inc: { saldo: Number(req.params.valor) } },
-            { new: true }
-        );
-        if(user) res.send(`Sucesso! Novo saldo: R$ ${user.saldo}`);
-        else res.send("Usuário não encontrado. Verifique o e-mail.");
-    } catch (e) { res.status(500).send("Erro no servidor"); }
-});
-
 // --- GERAÇÃO DE PIX ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
@@ -57,7 +44,8 @@ app.post('/gerar-pix', async (req, res) => {
                 description: 'Deposito Bingo Real',
                 payment_method_id: 'pix',
                 payer: { email: user.email },
-                notification_url: 'https://bingo-backend-89dt.onrender.com/webhook'
+                notification_url: 'https://bingo-backend-89dt.onrender.com/webhook',
+                external_reference: userId // GUARDAMOS O ID AQUI PARA O WEBHOOK ACHAR DEPOIS
             }
         });
         res.json({
@@ -67,26 +55,37 @@ app.post('/gerar-pix', async (req, res) => {
     } catch (error) { res.status(500).json({ erro: "Erro PIX" }); }
 });
 
-// --- WEBHOOK (SALDO AUTOMÁTICO) ---
+// --- WEBHOOK CORRIGIDO (SALDO CAI AQUI) ---
 app.post('/webhook', async (req, res) => {
-    const { action, data } = req.body;
-    if (action === "payment.created" || req.query["data.id"]) {
-        const id = data ? data.id : req.query["data.id"];
+    const { action, data, type } = req.body;
+    
+    // O Mercado Pago pode enviar o ID de várias formas, aqui pegamos todas
+    const id = (data && data.id) || req.query["data.id"] || (req.body.resource && req.body.resource.split('/').pop());
+
+    if (id) {
         try {
             const payment = new Payment(client);
             const p = await payment.get({ id });
+            
             if (p.status === 'approved') {
-                await User.findOneAndUpdate(
-                    { email: p.payer.email }, 
-                    { $inc: { saldo: p.transaction_amount } }
+                const valorPago = p.transaction_amount;
+                const emailUsuario = p.payer.email;
+                
+                // Tenta achar pelo ID que salvamos ou pelo E-mail
+                const user = await User.findOneAndUpdate(
+                    { $or: [{ _id: p.external_reference }, { email: emailUsuario }] }, 
+                    { $inc: { saldo: valorPago } },
+                    { new: true }
                 );
+                
+                if (user) console.log(`Sucesso: R$ ${valorPago} adicionado para ${user.name}`);
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Erro no processamento do Webhook:", e); }
     }
-    res.sendStatus(200);
+    res.sendStatus(200); // Sempre avisar ao Mercado Pago que recebemos o aviso
 });
 
-// CRONÔMETRO
+// CRONÔMETRO E SORTEIO (MANTIDOS IGUAIS)
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
         if (jogo.tempoRestante > 0) jogo.tempoRestante--;
@@ -131,40 +130,51 @@ function finalizarRodada() {
     }, 15000);
 }
 
-// OUTRAS ROTAS
+// COMPRA DE CARTELAS
 app.post('/comprar-com-saldo', async (req, res) => {
     const user = await User.findById(req.body.usuarioId);
     if (user && user.saldo >= 2) {
         user.saldo -= 2;
         let c = [];
         while(c.length < 10) { let n = Math.floor(Math.random() * 50) + 1; if(!c.includes(n)) c.push(n); }
-        if (jogo.fase === 'sorteio') { user.cartelasProximaRodada.push(c); premioReservadoProxima += 1.5; }
-        else { user.cartelas.push(c); jogo.premioAcumulado += 1.5; }
+        
+        if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') { 
+            user.cartelasProximaRodada.push(c); 
+            premioReservadoProxima += 1.5; 
+        } else { 
+            user.cartelas.push(c); 
+            jogo.premioAcumulado += 1.5; 
+        }
+        
         await user.save();
-        res.json({ msg: "OK" });
+        res.json({ msg: "OK", totalCartelasAtivas: user.cartelas.length });
     } else res.status(400).send("Saldo insuficiente");
 });
 
-app.post('/pedir-saque', async (req, res) => {
-    const { userId, valor, chavePix } = req.body;
-    const user = await User.findById(userId);
-    if (user && user.saldo >= valor && valor >= 20) {
-        user.saldo -= valor;
-        await user.save();
-        await new Saque({ userId, userName: user.name, valor, chavePix }).save();
-        res.json({ ok: true, msg: "Solicitado" });
-    } else res.status(400).send("Erro");
+// ROTAS DE STATUS
+app.get('/game-status', (req, res) => {
+    // Adicionamos o total de cartelas do jogo para o HTML ler o prêmio
+    res.json({
+        ...jogo,
+        totalCartelasAtivas: (jogo.premioAcumulado / 1.5)
+    });
 });
 
-app.get('/game-status', (req, res) => res.json(jogo));
 app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
+
 app.post('/login', async (req, res) => {
     const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
     if(u) res.json({ user: u }); else res.status(401).send();
 });
+
 app.post('/register', async (req, res) => {
-    try { const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password }); await u.save(); res.json({ok:true}); } catch(e) { res.status(400).send(); }
+    try { 
+        const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password }); 
+        await u.save(); 
+        res.json({ok:true}); 
+    } catch(e) { res.status(400).send(); }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
+
