@@ -1,145 +1,136 @@
-const API = "https://bingo-backend-89dt.onrender.com";
-let USER_ID = localStorage.getItem('userId');
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const app = express();
 
-// 1. FUNÇÃO PARA CONTROLAR AS TELAS (Login, Cadastro ou Jogo)
-function mostrarTela(id) {
-    document.getElementById('telaLogin').classList.add('hidden');
-    document.getElementById('telaCadastro').classList.add('hidden');
-    document.getElementById('telaJogo').classList.add('hidden');
-    document.getElementById(id).classList.remove('hidden');
-}
+app.use(express.json());
+app.use(cors());
 
-// 2. CARREGAR DADOS DO SERVIDOR (Cronômetro, Prêmio e Saldo)
-async function carregarDados() {
-    try {
-        const resStatus = await fetch(`${API}/game-status`);
-        if (!resStatus.ok) throw new Error("Erro de conexão");
-        const jogo = await resStatus.json();
+// 1. CONEXÃO COM BANCO DE DADOS
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB Conectado"))
+  .catch(err => console.log("Erro MongoDB:", err));
 
-        // Atualiza o Cronômetro
-        const timerElemento = document.getElementById('timerTxt');
-        let min = Math.floor(jogo.tempoRestante / 60);
-        let seg = jogo.tempoRestante % 60;
-        
-        if (jogo.fase === 'sorteio') {
-            timerElemento.innerText = "SORTEANDO!";
-            timerElemento.style.color = "#facc15";
+// 2. MODELO DE USUÁRIO
+const User = mongoose.model('User', new mongoose.Schema({
+    name: String,
+    email: { type: String, unique: true },
+    senha: { type: String, required: true },
+    saldo: { type: Number, default: 0 }
+}));
+
+// 3. ESTADO DO JOGO (50 BOLAS / CARTELA 10 NÚMEROS)
+let jogo = { 
+    bolas: [], 
+    fase: 'aguardando', 
+    tempoRestante: 300, 
+    premioAcumulado: 0 
+};
+
+// 4. LÓGICA DO CRONÔMETRO (O QUE FAZ O TEMPO DESCER)
+setInterval(() => {
+    if (jogo.fase === 'aguardando') {
+        if (jogo.tempoRestante > 0) {
+            jogo.tempoRestante--;
         } else {
-            timerElemento.innerText = `${min < 10 ? '0'+min : min}:${seg < 10 ? '0'+seg : seg}`;
-            timerElemento.style.color = "#4ade80";
+            jogo.fase = 'sorteio';
+            iniciarSorteio();
         }
-
-        // Lógica do Prêmio Acumulando
-        const premioElemento = document.getElementById('premioTxt');
-        if (jogo.fase === 'aguardando') {
-            premioElemento.innerText = "ACUMULANDO...";
-        } else {
-            premioElemento.innerText = `R$ ${jogo.premioAcumulado.toFixed(2)}`;
-        }
-
-        // Atualiza Ranking Top 10
-        const resRank = await fetch(`${API}/top-10`);
-        const rank = await resRank.json();
-        document.getElementById('listaRanking').innerHTML = rank.map((u, i) => `
-            <div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom: 1px solid #334155;">
-                <span>${i+1}º ${u.name}</span>
-                <span style="color:#22c55e">R$ ${u.saldo.toFixed(2)}</span>
-            </div>
-        `).join('');
-
-        // Se houver bolas sendo sorteadas (Limite 50)
-        if(jogo.bolas.length > 0) {
-            document.getElementById('bolasSorteadas').innerHTML = jogo.bolas.map(b => `
-                <div style="background:#facc15; color:black; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">${b}</div>
-            `).join('');
-        }
-
-        // Dados do Usuário Logado
-        if (USER_ID) {
-            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
-            const user = await resUser.json();
-            document.getElementById('nomePlayer').innerText = user.name.toUpperCase();
-            document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
-        }
-
-    } catch (e) {
-        console.log("Tentando conectar ao servidor...");
-        document.getElementById('timerTxt').innerText = "CONECTANDO...";
     }
-}
+}, 1000);
 
-// 3. COMPRAR CARTELA (Regra: R$ 2,00 e 10 números)
-async function comprarCartela() {
-    if (!USER_ID) return alert("Faça login primeiro!");
-    
-    try {
-        const res = await fetch(`${API}/comprar-com-saldo`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ usuarioId: USER_ID, quantidade: 1 })
-        });
-        
-        if (res.ok) {
-            const data = await res.json();
-            const div = document.createElement('div');
-            div.className = 'cartela';
-            // Desenha a cartela com os 10 números gerados
-            div.innerHTML = data.cartelas[0].map(n => `<div>${n}</div>`).join('');
-            document.getElementById('minhasCartelas').prepend(div);
-            alert("Cartela comprada com sucesso!");
+function iniciarSorteio() {
+    let intervalo = setInterval(() => {
+        if (jogo.bolas.length < 50) {
+            let num;
+            do { num = Math.floor(Math.random() * 50) + 1; } 
+            while (jogo.bolas.includes(num));
+            jogo.bolas.push(num);
         } else {
-            alert("Saldo insuficiente ou erro na compra!");
+            clearInterval(intervalo);
+            // Reinicia após 1 minuto de exibição dos resultados
+            setTimeout(reiniciarJogo, 60000);
         }
-    } catch (e) { alert("Erro ao conectar com o servidor."); }
+    }, 4000); 
 }
 
-// 4. LOGIN E CADASTRO
-async function fazerLogin() {
-    const email = document.getElementById('loginEmail').value;
-    const senha = document.getElementById('loginSenha').value;
-    const res = await fetch(`${API}/login`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ email, senha })
-    });
-    const data = await res.json();
-    if(res.ok) {
-        localStorage.setItem('userId', data.user._id);
-        USER_ID = data.user._id;
-        location.reload(); 
-    } else { alert("Dados incorretos!"); }
+function reiniciarJogo() {
+    jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 }
 
-async function fazerCadastro() {
-    const dados = {
-        name: document.getElementById('cadNome').value,
-        email: document.getElementById('cadEmail').value,
-        senha: document.getElementById('cadSenha').value
-    };
-    const res = await fetch(`${API}/register`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(dados)
-    });
-    if(res.ok) { alert("Conta criada!"); mostrarTela('telaLogin'); }
-    else { alert("Erro no cadastro."); }
-}
+// 5. ROTAS DE STATUS E RANKING
+app.get('/game-status', (req, res) => {
+    res.json(jogo);
+});
 
-async function solicitarPix() {
-    await fetch(`${API}/solicitar-pix`, { method: 'POST' });
-    alert("Solicitação enviada ao Gerente Emanuel!");
-}
+app.get('/top-10', async (req, res) => {
+    const topUsers = await User.find({}, 'name saldo').sort({ saldo: -1 }).limit(10);
+    res.json(topUsers);
+});
 
-function logout() {
-    localStorage.clear();
-    location.reload();
-}
+// 6. COMPRA DE CARTELA (CARTELA 2,00 | ACUMULADO 1,50)
+app.post('/comprar-com-saldo', async (req, res) => {
+    try {
+        const { usuarioId, quantidade } = req.body;
+        const user = await User.findById(usuarioId);
+        const custo = quantidade * 2;
+        
+        if (user && user.saldo >= custo) {
+            user.saldo -= custo;
+            await user.save();
+            
+            // Adiciona R$ 1,50 por cartela ao prêmio
+            jogo.premioAcumulado += (quantidade * 1.5);
 
-// INICIALIZAÇÃO
-if (USER_ID) {
-    mostrarTela('telaJogo');
-    setInterval(carregarDados, 2000); // Atualiza tudo a cada 2 segundos
-    carregarDados();
-} else {
-    mostrarTela('telaLogin');
-}
+            // Gera cartelas de 10 números
+            let novasCartelas = [];
+            for(let i=0; i<quantidade; i++) {
+                let nums = [];
+                while(nums.length < 10) {
+                    let n = Math.floor(Math.random() * 50) + 1;
+                    if(!nums.includes(n)) nums.push(n);
+                }
+                novasCartelas.push(nums.sort((a,b) => a-b));
+            }
+            res.json({ message: "OK", novoSaldo: user.saldo, cartelas: novasCartelas });
+        } else {
+            res.status(400).json({ message: "Sem saldo" });
+        }
+    } catch (e) { res.status(500).json({ message: "Erro" }); }
+});
+
+// 7. LOGIN E CADASTRO
+app.post('/register', async (req, res) => {
+    try {
+        const newUser = new User(req.body);
+        await newUser.save();
+        res.json({ message: "Criado" });
+    } catch (e) { res.status(400).json({ message: "Erro" }); }
+});
+
+app.post('/login', async (req, res) => {
+    const user = await User.findOne({ email: req.body.email, senha: req.body.senha });
+    if(user) res.json({ user });
+    else res.status(401).json({ message: "Erro" });
+});
+
+app.get('/user-data/:id', async (req, res) => {
+    const user = await User.findById(req.params.id);
+    res.json(user);
+});
+
+// Rota do Gerente para adicionar saldo
+app.get('/users', async (req, res) => {
+    const users = await User.find();
+    res.json(users);
+});
+
+app.post('/add-saldo', async (req, res) => {
+    const { userId, amount } = req.body;
+    const user = await User.findById(userId);
+    user.saldo += amount;
+    await user.save();
+    res.json({ message: "OK" });
+});
+
+app.listen(process.env.PORT || 3000, () => console.log("Servidor Online"));
