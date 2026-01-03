@@ -9,21 +9,25 @@
         body { font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 10px; }
         .card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--primary); margin: 10px auto; max-width: 380px; }
         .hidden { display: none !important; }
-        .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 15px; border-radius: 10px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
+        
+        /* CAIXA VERDE DO PRÊMIO */
+        .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 15px; border-radius: 10px; margin-bottom: 15px; min-height: 70px; display: flex; align-items: center; justify-content: center; }
         .acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; font-size: 20px; text-transform: uppercase; }
         @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
         .container-cartelas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
         .cartela { background: #f8fafc; color: #1e293b; padding: 10px; border-radius: 8px; border: 2px solid var(--primary); width: 150px; }
         .nome-dono { font-size: 10px; font-weight: bold; color: #1e293b; border-bottom: 1px solid #ddd; margin-bottom: 5px; padding-bottom: 2px; }
         .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
         .numero { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 4px 0; border-radius: 4px; }
         .marcado { background: var(--success) !important; color: white; }
+
         input { width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
         button { width: 100%; padding: 14px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin: 5px 0; text-transform: uppercase; }
         .bola-sorteada { width: 25px; height: 25px; background: var(--primary); color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
+        
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: white; padding: 20px; border-radius: 15px; color: black; width: 80%; max-width: 300px; }
-        /* Estilo para o campo de cópia invisível */
         #pixInvisivel { position: absolute; left: -9999px; }
     </style>
 </head>
@@ -35,7 +39,6 @@
         <img id="qrImagem" style="width:100%" src="">
         <div id="qrTexto" style="font-size:10px; word-break:break-all; margin:10px 0; background:#eee; padding:8px; border: 1px dashed #ccc;"></div>
         <input type="text" id="pixInvisivel">
-        
         <button onclick="copiarPix()" style="background:#2563eb; color:white;">COPIAR CÓDIGO PIX</button>
         <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="background:#ef4444; color:white;">FECHAR</button>
     </div>
@@ -91,15 +94,17 @@
     async function fazerLogin() {
         const email = document.getElementById('loginEmail').value;
         const senha = document.getElementById('loginSenha').value;
-        const res = await fetch(`${API}/login`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ email, senha })
-        });
-        if(res.ok) {
-            const d = await res.json();
-            localStorage.setItem('userId', d.user._id);
-            location.reload();
-        } else alert("E-mail ou senha incorretos!");
+        try {
+            const res = await fetch(`${API}/login`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email, senha })
+            });
+            if(res.ok) {
+                const d = await res.json();
+                localStorage.setItem('userId', d.user._id);
+                location.reload();
+            } else alert("Erro no login! Verifique e-mail e senha.");
+        } catch(e) { alert("Servidor offline. Tente de novo em 30 segundos."); }
     }
 
     async function fazerCadastro() {
@@ -111,12 +116,20 @@
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ name, email, password })
         });
-        if(res.ok) alert("Cadastro feito! Agora faça login.");
+        if(res.ok) { alert("Cadastro feito! Agora entre com seu e-mail."); mostrarLogin(); }
         else alert("Erro ao cadastrar.");
-        mostrarLogin();
     }
 
     function logout() { localStorage.removeItem('userId'); location.reload(); }
+
+    async function comprarCartelas() {
+        const res = await fetch(`${API}/comprar-com-saldo`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ usuarioId: USER_ID })
+        });
+        if(res.ok) { alert("✅ Comprado!"); atualizarInterface(); }
+        else alert("Saldo insuficiente ou erro!");
+    }
 
     async function atualizarInterface() {
         if(!USER_ID) return;
@@ -124,6 +137,7 @@
             const resUser = await fetch(`${API}/user-data/${USER_ID}?t=${Date.now()}`);
             const user = await resUser.json();
             document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
+            
             const resStatus = await fetch(`${API}/game-status?t=${Date.now()}`);
             const jogo = await resStatus.json();
             document.getElementById('timerTxt').innerText = jogo.tempoRestante;
@@ -131,7 +145,7 @@
             document.getElementById('historicoBolas').innerHTML = jogo.bolas.map(b => `<div class="bola-sorteada">${b}</div>`).join('');
 
             if(user.cartelas) {
-                document.getElementById('listaCartelas').innerHTML = user.cartelas.map((c, idx) => {
+                document.getElementById('listaCartelas').innerHTML = user.cartelas.map((c) => {
                     return `<div class="cartela">
                         <div class="nome-dono">👤 ${user.name}</div>
                         <div class="grid-cartela">${c.map(num => `<div class="numero ${jogo.bolas.includes(num) ? 'marcado' : ''}">${num}</div>`).join('')}</div>
@@ -152,31 +166,22 @@
         if(data.qr_code_base64) {
             document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
             document.getElementById('qrTexto').innerText = data.qr_code;
-            document.getElementById('pixInvisivel').value = data.qr_code; // Guarda no campo invisível
+            document.getElementById('pixInvisivel').value = data.qr_code;
             document.getElementById('modalPix').classList.remove('hidden');
         }
     }
 
-    // NOVA FUNÇÃO DE COPIAR MAIS FORTE
     function copiarPix() { 
-        const inputInvisivel = document.getElementById('pixInvisivel');
-        inputInvisivel.select();
-        inputInvisivel.setSelectionRange(0, 99999); // Para celulares
-        
-        try {
-            document.execCommand('copy');
-            alert("✅ CÓDIGO PIX COPIADO! Agora cole no seu banco.");
-        } catch (err) {
-            // Caso o comando falhe, tenta o método moderno
-            navigator.clipboard.writeText(inputInvisivel.value);
-            alert("✅ CÓDIGO PIX COPIADO!");
-        }
+        const input = document.getElementById('pixInvisivel');
+        input.select();
+        document.execCommand('copy');
+        alert("✅ COPIADO!");
     }
 
     if(USER_ID) {
         document.getElementById('telaAuth').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
-        setInterval(atualizarInterface, 1000); 
+        setInterval(atualizarInterface, 1000); // ATUALIZAÇÃO TURBO A CADA 1 SEG
         atualizarInterface();
     }
 </script>
