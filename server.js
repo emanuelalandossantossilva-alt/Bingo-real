@@ -6,12 +6,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 1. CONEXÃO COM O BANCO DE DADOS
+// CONEXÃO
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB Conectado"))
   .catch(err => console.log("Erro MongoDB:", err));
 
-// 2. MODELO DE USUÁRIO
+// MODELO
 const User = mongoose.model('User', new mongoose.Schema({
     name: String,
     email: { type: String, unique: true },
@@ -19,15 +19,9 @@ const User = mongoose.model('User', new mongoose.Schema({
     saldo: { type: Number, default: 0 }
 }));
 
-// 3. ESTADO DO JOGO
-let jogo = { 
-    bolas: [], 
-    fase: 'aguardando', 
-    tempoRestante: 300, 
-    premioAcumulado: 0 
-};
+let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 
-// 4. LÓGICA DO CRONÔMETRO E SORTEIO
+// CRONÔMETRO
 setInterval(() => {
     if (jogo.tempoRestante > 0) {
         jogo.tempoRestante--;
@@ -55,7 +49,7 @@ function reiniciarJogo() {
     jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 }
 
-// 5. ROTA DO RANKING TOP 10 (NOVIDADE)
+// --- ROTA DO RANKING TOP 10 ---
 app.get('/top-10', async (req, res) => {
     try {
         const topUsers = await User.find({}, 'name saldo').sort({ saldo: -1 }).limit(10);
@@ -64,59 +58,51 @@ app.get('/top-10', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// 6. ROTAS DO GERENTE
+// --- ROTA PARA O BOTÃO PIX ---
+app.post('/solicitar-pix', (req, res) => {
+    // Aqui você pode adicionar lógica para te avisar, 
+    // mas por enquanto vamos apenas dar o retorno positivo para o site
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json({ message: "Solicitação enviada! Chame o gerente no WhatsApp." });
+});
+
+// ROTAS DO GERENTE
 app.get('/users', async (req, res) => {
-    try {
-        const users = await User.find();
-        res.set('Access-Control-Allow-Origin', '*');
-        res.json(users);
-    } catch (e) { res.status(500).send(); }
+    const users = await User.find();
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json(users);
 });
 
 app.post('/add-saldo', async (req, res) => {
     try {
         const { userId, amount } = req.body;
         const user = await User.findById(userId);
-        if (user) {
-            user.saldo += amount;
-            await user.save();
-            res.set('Access-Control-Allow-Origin', '*');
-            res.json({ message: "OK" });
-        }
+        user.saldo += amount;
+        await user.save();
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json({ message: "OK" });
     } catch (e) { res.status(500).send(); }
 });
 
-// 7. ROTA DE COMPRA COM DESCONTO REAL
+// COMPRA COM SALDO
 app.post('/comprar-com-saldo', async (req, res) => {
     try {
         const { usuarioId, quantidade } = req.body;
         const user = await User.findById(usuarioId);
         const custoTotal = quantidade * 2;
-
-        if (user && user.saldo >= custoTotal) {
+        if (user.saldo >= custoTotal) {
             user.saldo -= custoTotal;
             await user.save();
             jogo.premioAcumulado += (quantidade * 1);
             res.set('Access-Control-Allow-Origin', '*');
-            res.json({ message: "Sucesso", novoSaldo: user.saldo });
-        } else { 
-            res.status(400).json({ message: "Saldo insuficiente" }); 
-        }
+            res.json({ message: "Sucesso" });
+        } else { res.status(400).json({ message: "Saldo insuficiente" }); }
     } catch (e) { res.status(500).json({ message: "Erro" }); }
 });
 
-// 8. ROTAS DE LOGIN E STATUS
 app.get('/game-status', (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.json(jogo);
-});
-
-app.get('/user-data/:id', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        res.set('Access-Control-Allow-Origin', '*');
-        res.json(user);
-    } catch (e) { res.status(404).send(); }
 });
 
 app.post('/login', async (req, res) => {
@@ -134,4 +120,3 @@ app.post('/register', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000);
-
