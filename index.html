@@ -10,176 +10,141 @@
         .card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--primary); margin: 10px auto; max-width: 380px; box-sizing: border-box; }
         .hidden { display: none !important; }
         
-        /* Inputs e Botões */
+        /* Efeito Acumulando */
+        .acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; font-size: 20px; }
+        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Estilo Ganhador */
+        .vitoria-animada { animation: brilhar-ouro 1s infinite alternate; border: 3px solid var(--primary); }
+        @keyframes brilhar-ouro { from { box-shadow: 0 0 10px var(--primary); } to { box-shadow: 0 0 30px #ffffff, 0 0 40px var(--primary); } }
+        .nome-vencedor { font-size: 32px; color: var(--primary); display: block; margin: 15px 0; text-transform: uppercase; font-weight: bold; }
+
+        /* Cartelas e Grid */
+        .container-cartelas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
+        .cartela { 
+            background: #f8fafc; 
+            color: #1e293b; 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 2px solid var(--primary); 
+            width: 155px; 
+            min-height: 130px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 5px; }
+        .numero { font-size: 11px; font-weight: bold; background: #e2e8f0; padding: 4px 0; border-radius: 4px; }
+        .marcado { background: var(--success) !important; color: white; }
+
+        /* Ranking */
+        .item-ranking { background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--primary); }
+        .pontos { background: var(--success); color: white; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: bold; }
+
+        /* Base UI */
         input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
         button { width: 100%; padding: 14px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin: 5px 0; text-transform: uppercase; }
-        
-        /* Ranking */
-        .item-ranking { background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
-        .posicao { color: var(--primary); font-weight: bold; margin-right: 10px; }
-        .nome-user { flex-grow: 1; text-align: left; font-size: 14px; }
-        .pontos { background: var(--success); padding: 4px 8px; border-radius: 5px; font-size: 12px; }
-
-        /* Jogo */
-        .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 10px; border-radius: 10px; margin-bottom: 15px; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
-        .valor-acumulado { font-size: 26px; color: #4ade80; font-weight: bold; }
-        .acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; }
-        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
+        .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 15px; border-radius: 10px; margin-bottom: 15px; min-height: 70px; display: flex; align-items: center; justify-content: center; }
         .abas { display: flex; background: #0f172a; border-radius: 8px; padding: 4px; margin-bottom: 10px; }
-        .aba { cursor: pointer; padding: 8px; color: #94a3b8; flex: 1; font-size: 12px; font-weight: bold; border-radius: 6px; }
+        .aba { cursor: pointer; padding: 8px; color: #94a3b8; flex: 1; font-size: 11px; font-weight: bold; border-radius: 6px; }
         .aba.ativa { color: #020617; background: var(--primary); }
-        .bola-sorteada { width: 22px; height: 22px; background: var(--primary); color: black; border-radius: 50%; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .bola-sorteada { width: 25px; height: 25px; background: var(--primary); color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
 
-        /* MODAL PIX */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 99999; }
-        .modal-content { background: white; padding: 20px; border-radius: 20px; color: black; width: 85%; max-width: 320px; }
-        .qr-img { width: 100%; max-width: 200px; height: auto; margin: 10px auto; display: block; }
-        .copia-cola { background: #f1f5f9; padding: 10px; border-radius: 8px; font-size: 10px; word-break: break-all; font-family: monospace; border: 1px solid #ccc; margin: 10px 0; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 20px; border-radius: 15px; color: black; width: 80%; max-width: 300px; }
     </style>
 </head>
 <body>
 
 <div id="modalPix" class="modal hidden">
     <div class="modal-content">
-        <h2 style="margin:0;">Pagar via PIX</h2>
-        <img id="qrImagem" class="qr-img" src="" alt="QR Code">
-        <div id="qrTexto" class="copia-cola">Carregando...</div>
-        <button onclick="copiarPix()" style="background: #2563eb; color: white;">COPIAR CÓDIGO</button>
-        <button onclick="fecharPix()" style="background: #ef4444; color: white;">FECHAR</button>
+        <h3>Pagamento PIX</h3>
+        <img id="qrImagem" style="width:100%" src="">
+        <div id="qrTexto" style="font-size:10px; word-break:break-all; margin:10px 0; background:#eee; padding:8px;"></div>
+        <button onclick="copiarPix()" style="background:#2563eb; color:white;">COPIAR CÓDIGO</button>
+        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="background:#ef4444; color:white;">FECHAR</button>
     </div>
 </div>
 
-<div id="telaLogin" class="card">
-    <h2 style="color:#facc15;">BINGO REAL</h2>
-    <input type="email" id="loginEmail" placeholder="Seu E-mail">
-    <input type="password" id="loginSenha" placeholder="Sua Senha">
-    <button style="background: #2563eb; color: white;" onclick="fazerLogin()">ENTRAR NO JOGO</button>
-    <p onclick="mostrarCadastro()" style="cursor:pointer; color:#facc15; font-size:14px; margin-top:10px;">Não tem conta? Cadastre-se</p>
+<div id="modalGanhador" class="modal hidden">
+    <div class="modal-content vitoria-animada" style="background: #020617; color: white;">
+        <h2>🎊 BINGO! 🎊</h2>
+        <p>Ganhador da Rodada:</p>
+        <span id="nomeVencedor" class="nome-vencedor">---</span>
+        <div style="font-size: 40px;">💰</div>
+        <button onclick="document.getElementById('modalGanhador').classList.add('hidden')" style="background:var(--primary); color:black;">FECHAR</button>
+    </div>
 </div>
 
-<div id="telaCadastro" class="card hidden">
-    <h2 style="color:#facc15;">CADASTRO</h2>
-    <input type="text" id="cadNome" placeholder="Seu Nome Completo">
-    <input type="email" id="cadEmail" placeholder="Seu Melhor E-mail">
-    <input type="password" id="cadSenha" placeholder="Crie uma Senha">
-    <button style="background: #16a34a; color: white;" onclick="fazerCadastro()">CRIAR MINHA CONTA</button>
-    <p onclick="mostrarLogin()" style="cursor:pointer; color:#facc15; font-size:14px; margin-top:10px;">Já tenho conta (Login)</p>
+<div id="telaAuth" class="card">
+    <h2 style="color:var(--primary)">BINGO REAL</h2>
+    <div class="abas">
+        <div id="btnAbaLogin" class="aba ativa" onclick="mudarAbaAuth('login')">LOGIN</div>
+        <div id="btnAbaCad" class="aba" onclick="mudarAbaAuth('cad')">CADASTRO</div>
+    </div>
+    <div id="formLogin">
+        <input type="email" id="loginEmail" placeholder="E-mail">
+        <input type="password" id="loginSenha" placeholder="Senha">
+        <button style="background: #2563eb; color: white;" onclick="fazerLogin()">ENTRAR</button>
+    </div>
+    <div id="formCad" class="hidden">
+        <input type="text" id="cadNome" placeholder="Nome">
+        <input type="email" id="cadEmail" placeholder="E-mail">
+        <input type="password" id="cadSenha" placeholder="Senha">
+        <button style="background: var(--success); color: white;" onclick="fazerCadastro()">CADASTRAR</button>
+    </div>
 </div>
 
 <div id="telaJogo" class="hidden">
     <div class="card">
         <div class="caixa-premio">
-            <div id="suspenseTxt" class="acumulando">PRÊMIO ACUMULANDO...</div>
+            <div id="suspenseTxt" class="acumulando">ACUMULANDO...</div>
             <div id="valorRevelado" class="hidden">
-                <small style="color:#4ade80;">VALOR EM JOGO</small>
-                <div id="valorPremio" class="valor-acumulado">R$ 0,00</div>
+                <small style="color:#4ade80;">PRÊMIO DA RODADA</small>
+                <div id="valorPremio" style="font-size:24px; font-weight:bold;">R$ 0,00</div>
             </div>
         </div>
 
         <div class="abas">
             <div id="tabSorteio" class="aba ativa" onclick="mudarAba('sorteio')">SORTEIO</div>
-            <div id="tabRanking" class="aba" onclick="mudarAba('ranking')">TOP 10 ACERTOS</div>
+            <div id="tabCartelas" class="aba" onclick="mudarAba('cartelas')">CARTELAS</div>
+            <div id="tabRanking" class="aba" onclick="mudarAba('ranking')">TOP ACERTOS</div>
         </div>
 
         <div id="conteudoSorteio">
-            <div id="timerTxt" style="font-size: 24px; color: #facc15; font-weight: bold; margin-bottom: 10px;">05:00</div>
-            <div id="bolaGrande" style="font-size: 60px; color: #fff; font-weight: bold; margin: 10px 0;">--</div>
+            <div id="timerTxt" style="font-size:24px; color:var(--primary); font-weight:bold;">05:00</div>
+            <div id="bolaGrande" style="font-size:60px; margin:10px 0;">--</div>
             <div id="historicoBolas" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px;"></div>
         </div>
 
+        <div id="conteudoCartelas" class="hidden">
+            <div class="container-cartelas" id="listaCartelas"></div>
+        </div>
+
         <div id="conteudoRanking" class="hidden">
-            <div id="listaRanking">
-                <p style="color:#94a3b8; font-size:12px;">As cartelas aparecerão aqui quando o sorteio começar.</p>
-            </div>
+            <div id="listaRanking"></div>
         </div>
 
-        <div style="margin: 15px 0; font-weight:bold; font-size:18px;">
-            <span id="playerSaldo" style="color:#22c55e;">Saldo: R$ 0,00</span>
+        <div style="margin:15px 0;">
+            <span id="playerSaldo" style="color:var(--success); font-weight:bold; font-size:18px;">Saldo: R$ 0,00</span>
         </div>
 
-        <div style="background:#0f172a; padding:10px; border-radius:10px; margin-bottom:10px;">
-            <label style="font-size:11px;">QUANTIDADE:</label>
-            <input type="number" id="qtdCartelas" value="1" min="1" style="width:50px; text-align:center; padding:5px; margin:0 10px;">
-            <button id="btnComprar" style="background: #2563eb; color: white; width:60%;" onclick="comprarCartelas()">COMPRAR</button>
-        </div>
-
-        <button style="background: #16a34a; color: white;" onclick="abrirPix()">DEPOSITAR SALDO</button>
+        <button style="background: #2563eb; color: white;" onclick="comprarCartelas()">COMPRAR CARTELA (R$ 2,00)</button>
+        <button style="background: #16a34a; color: white;" onclick="gerarPix()">DEPOSITAR</button>
+        <button style="background: transparent; color: #94a3b8; font-size: 10px;" onclick="logout()">SAIR</button>
     </div>
 </div>
 
-<script src="https://sdk.mercadopago.com/js/v2"></script>
 <script>
     const API = "https://bingo-backend-89dt.onrender.com";
-    const PUBLIC_KEY = "APP_USR-3f875a4f-aff1-4b7b-902e-4494b11b472d";
     let USER_ID = localStorage.getItem('userId');
-    const mp = new MercadoPago(PUBLIC_KEY);
+    let bolasSorteadas = [];
+    let modalGanhadorAberto = false;
 
-    function mostrarLogin() { document.getElementById('telaLogin').classList.remove('hidden'); document.getElementById('telaCadastro').classList.add('hidden'); }
-    function mostrarCadastro() { document.getElementById('telaLogin').classList.add('hidden'); document.getElementById('telaCadastro').classList.remove('hidden'); }
-
-    // --- FUNÇÃO PIX ---
-    async function abrirPix() {
-        const valor = prompt("Quanto deseja depositar?", "10");
-        if (!valor || valor < 10) return alert("Mínimo R$ 10");
-
-        try {
-            const res = await fetch(`${API}/gerar-pix`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId: USER_ID, valor: parseFloat(valor) })
-            });
-            const data = await res.json();
-            
-            // Ajustado para bater com seu server: qr_code_base64 e qr_code
-            if(data.qr_code_base64) {
-                document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
-                document.getElementById('qrTexto').innerText = data.qr_code;
-                document.getElementById('modalPix').classList.remove('hidden');
-            }
-        } catch (e) { alert("Erro ao gerar PIX"); }
-    }
-
-    function fecharPix() { document.getElementById('modalPix').classList.add('hidden'); }
-    function copiarPix() {
-        navigator.clipboard.writeText(document.getElementById('qrTexto').innerText);
-        alert("Código copiado!");
-    }
-
-    // --- ATUALIZAÇÃO ---
-    async function atualizarInterface() {
-        if(!USER_ID) return;
-        try {
-            const res = await fetch(`${API}/game-status`);
-            const jogo = await res.json();
-            
-            // Timer
-            const min = Math.floor(jogo.tempoRestante / 60).toString().padStart(2, '0');
-            const seg = (jogo.tempoRestante % 60).toString().padStart(2, '0');
-            document.getElementById('timerTxt').innerText = `${min}:${seg}`;
-
-            if (jogo.bolas && jogo.bolas.length > 0) {
-                document.getElementById('suspenseTxt').classList.add('hidden');
-                document.getElementById('valorRevelado').classList.remove('hidden');
-                document.getElementById('valorPremio').innerText = `R$ ${jogo.premioAcumulado.toFixed(2)}`;
-                document.getElementById('bolaGrande').innerText = jogo.bolas[jogo.bolas.length - 1];
-                document.getElementById('btnComprar').disabled = true;
-                document.getElementById('btnComprar').innerText = "EM JOGO";
-                document.getElementById('historicoBolas').innerHTML = jogo.bolas.map(b => `<div class="bola-sorteada">${b}</div>`).join('');
-            } else {
-                document.getElementById('suspenseTxt').classList.remove('hidden');
-                document.getElementById('valorRevelado').classList.add('hidden');
-                document.getElementById('btnComprar').disabled = false;
-                document.getElementById('btnComprar').innerText = "COMPRAR";
-                document.getElementById('bolaGrande').innerText = "--";
-                document.getElementById('historicoBolas').innerHTML = "";
-            }
-
-            // Saldo
-            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
-            const user = await resUser.json();
-            document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
-        } catch (e) {}
+    // AUTH
+    function mudarAbaAuth(tipo) {
+        document.getElementById('formLogin').classList.toggle('hidden', tipo !== 'login');
+        document.getElementById('formCad').classList.toggle('hidden', tipo !== 'cad');
+        document.getElementById('btnAbaLogin').classList.toggle('ativa', tipo === 'login');
+        document.getElementById('btnAbaCad').classList.toggle('ativa', tipo === 'cad');
     }
 
     async function fazerLogin() {
@@ -191,35 +156,126 @@
             const d = await res.json();
             localStorage.setItem('userId', d.user._id);
             location.reload();
-        } else alert("Dados incorretos!");
+        } else alert("Erro no login!");
     }
 
     async function fazerCadastro() {
         const res = await fetch(`${API}/register`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ name: cadNome.value, email: cadEmail.value, senha: cadSenha.value })
+            body: JSON.stringify({ name: cadNome.value, email: cadEmail.value, password: cadSenha.value })
         });
-        if(res.ok) { alert("Sucesso! Faça o login."); mostrarLogin(); }
+        if(res.ok) { alert("Cadastrado! Faça o login."); mudarAbaAuth('login'); }
+        else alert("Erro no cadastro!");
+    }
+
+    function logout() { localStorage.removeItem('userId'); location.reload(); }
+
+    // GAME
+    function formatarTempo(segundos) {
+        const min = Math.floor(segundos / 60).toString().padStart(2, '0');
+        const seg = (segundos % 60).toString().padStart(2, '0');
+        return `${min}:${seg}`;
+    }
+
+    async function atualizarInterface() {
+        if(!USER_ID) return;
+        try {
+            const resStatus = await fetch(`${API}/game-status`);
+            const jogo = await resStatus.json();
+            bolasSorteadas = jogo.bolas || [];
+
+            // Ganhador
+            if (jogo.ganhadorRodada && !modalGanhadorAberto) {
+                document.getElementById('nomeVencedor').innerText = jogo.ganhadorRodada;
+                document.getElementById('modalGanhador').classList.remove('hidden');
+                modalGanhadorAberto = true;
+            }
+            if (jogo.fase === 'aguardando') modalGanhadorAberto = false;
+
+            // Prêmio
+            if (jogo.premioAcumulado > 0 && bolasSorteadas.length > 0) {
+                document.getElementById('suspenseTxt').classList.add('hidden');
+                document.getElementById('valorRevelado').classList.remove('hidden');
+                document.getElementById('valorPremio').innerText = `R$ ${jogo.premioAcumulado.toFixed(2)}`;
+            } else {
+                document.getElementById('suspenseTxt').classList.remove('hidden');
+                document.getElementById('valorRevelado').classList.add('hidden');
+            }
+
+            document.getElementById('timerTxt').innerText = formatarTempo(jogo.tempoRestante);
+            document.getElementById('bolaGrande').innerText = bolasSorteadas.length > 0 ? bolasSorteadas[bolasSorteadas.length - 1] : "--";
+            document.getElementById('historicoBolas').innerHTML = bolasSorteadas.map(b => `<div class="bola-sorteada">${b}</div>`).join('');
+
+            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
+            const user = await resUser.json();
+            document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
+            
+            // RENDERIZAÇÃO DAS CARTELAS COM NOME E CONTADOR
+            if(user.cartelas && user.cartelas.length > 0) {
+                document.getElementById('listaCartelas').innerHTML = user.cartelas.map((c, idx) => {
+                    const marcados = c.filter(num => bolasSorteadas.includes(num)).length;
+                    const total = c.length;
+                    return `
+                        <div class="cartela">
+                            <div style="font-size: 10px; font-weight: bold; color: #1e293b; border-bottom: 1px solid #ccc; margin-bottom: 5px; padding-bottom: 2px;">
+                                👤 ${user.name.toUpperCase()}
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 9px; color: #64748b; margin-bottom: 5px;">
+                                <span>ID #${idx+1}</span>
+                                <span style="color: var(--success); font-weight: bold;">${marcados}/${total}</span>
+                            </div>
+                            <div class="grid-cartela">
+                                ${c.map(num => `<div class="numero ${bolasSorteadas.includes(num) ? 'marcado' : ''}">${num}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const resRanking = await fetch(`${API}/ranking-bingo`);
+            const ranking = await resRanking.json();
+            document.getElementById('listaRanking').innerHTML = ranking.map((item, i) => `
+                <div class="item-ranking">
+                    <span><b>${i+1}º</b> ${item.name}</span>
+                    <span class="pontos">${item.acertos} ACERTOS</span>
+                </div>
+            `).join('');
+        } catch(e) {}
     }
 
     async function comprarCartelas() {
-        const qtd = document.getElementById('qtdCartelas').value;
-        await fetch(`${API}/comprar-com-saldo`, { // Verifique se o nome da rota no server é esse ou 'comprar-com-saldo-multiplo'
+        const res = await fetch(`${API}/comprar-com-saldo`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd })
+            body: JSON.stringify({ usuarioId: USER_ID })
         });
-        atualizarInterface();
+        if(res.ok) { alert("Comprado!"); atualizarInterface(); } else alert("Erro saldo!");
     }
 
+    async function gerarPix() {
+        const valor = prompt("Valor (Mínimo 10):", "10");
+        const res = await fetch(`${API}/gerar-pix`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: USER_ID, valor })
+        });
+        const data = await res.json();
+        if(data.qr_code_base64) {
+            document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
+            document.getElementById('qrTexto').innerText = data.qr_code;
+            document.getElementById('modalPix').classList.remove('hidden');
+        }
+    }
+
+    function copiarPix() { navigator.clipboard.writeText(document.getElementById('qrTexto').innerText); alert("Copiado!"); }
+
     function mudarAba(aba) {
-        document.getElementById('conteudoSorteio').classList.toggle('hidden', aba !== 'sorteio');
-        document.getElementById('conteudoRanking').classList.toggle('hidden', aba !== 'ranking');
-        document.getElementById('tabSorteio').classList.toggle('ativa', aba === 'sorteio');
-        document.getElementById('tabRanking').classList.toggle('ativa', aba === 'ranking');
+        ['Sorteio', 'Cartelas', 'Ranking'].forEach(t => {
+            document.getElementById('conteudo'+t).classList.toggle('hidden', aba !== t.toLowerCase());
+            document.getElementById('tab'+t).classList.toggle('ativa', aba === t.toLowerCase());
+        });
     }
 
     if(USER_ID) {
-        document.getElementById('telaLogin').classList.add('hidden');
+        document.getElementById('telaAuth').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
         setInterval(atualizarInterface, 3000);
         atualizarInterface();
