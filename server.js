@@ -7,12 +7,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// CONFIGURAÇÃO MERCADO PAGO
+// CONFIGURAÇÃO MERCADO PAGO (TOKEN OFICIAL)
 const client = new MercadoPagoConfig({ 
     accessToken: 'APP_USR-2683158167668377-123121-4666c74759e0eac123b8c4c23bf7c1f1-485513741' 
 });
 
-// CONEXÃO BANCO DE DADOS
+// CONEXÃO MONGO (VARIÁVEL DE AMBIENTE)
 mongoose.connect(process.env.MONGODB_URI);
 
 const User = mongoose.model('User', new mongoose.Schema({
@@ -23,15 +23,11 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 
-// LOOP DO JOGO
+// LOOP DE TEMPO DO JOGO
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
-        if (jogo.tempoRestante > 0) {
-            jogo.tempoRestante--;
-        } else {
-            jogo.fase = 'sorteio';
-            iniciarSorteio();
-        }
+        if (jogo.tempoRestante > 0) { jogo.tempoRestante--; } 
+        else { jogo.fase = 'sorteio'; iniciarSorteio(); }
     }
 }, 1000);
 
@@ -51,17 +47,19 @@ function iniciarSorteio() {
     }, 4000);
 }
 
-// --- ROTAS DO MERCADO PAGO ---
+// --- ROTA DE DEPÓSITO (MÍNIMO R$ 10) ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
+    if (Number(valor) < 10) return res.status(400).json({ erro: "Mínimo R$ 10" });
+
     const payment = new Payment(client);
     try {
         const result = await payment.create({
             body: {
                 transaction_amount: Number(valor),
-                description: `Recarga Bingo Real`,
+                description: `Depósito Bingo Real`,
                 payment_method_id: 'pix',
-                payer: { email: 'cliente@bingoreal.com' },
+                payer: { email: 'contato@bingoreal.com' },
                 metadata: { user_id: userId }
             }
         });
@@ -72,6 +70,7 @@ app.post('/gerar-pix', async (req, res) => {
     } catch (e) { res.status(500).json(e); }
 });
 
+// --- WEBHOOK AUTOMÁTICO ---
 app.post('/webhook', async (req, res) => {
     const { data, type } = req.body;
     if (type === 'payment') {
@@ -82,12 +81,25 @@ app.post('/webhook', async (req, res) => {
                 const userId = p.metadata.user_id;
                 await User.findByIdAndUpdate(userId, { $inc: { saldo: p.transaction_amount } });
             }
-        } catch (e) { console.error("Erro Webhook"); }
+        } catch (e) { console.error("Erro no Webhook"); }
     }
     res.sendStatus(200);
 });
 
-// --- RANKING DE QUEM TÁ GANHANDO ---
+// --- ROTA DE SAQUE (MÍNIMO R$ 20) ---
+app.post('/solicitar-saque', async (req, res) => {
+    const { userId, valor, chavePix } = req.body;
+    const user = await User.findById(userId);
+    if (!user || user.saldo < Number(valor)) return res.status(400).json({ erro: "Saldo insuficiente" });
+    if (Number(valor) < 20) return res.status(400).json({ erro: "Saque mínimo R$ 20" });
+
+    user.saldo -= Number(valor);
+    await user.save();
+    console.log(`PEDIDO DE SAQUE: ${user.name} | R$ ${valor} | Chave: ${chavePix}`);
+    res.json({ ok: true });
+});
+
+// --- RANKING E OUTRAS ROTAS ---
 app.get('/ranking-bingo', async (req, res) => {
     const usuarios = await User.find();
     let ranking = usuarios.map(u => {
@@ -101,7 +113,6 @@ app.get('/ranking-bingo', async (req, res) => {
     res.json(ranking.sort((a,b) => b.acertos - a.acertos).slice(0, 10));
 });
 
-// --- OUTRAS ROTAS ---
 app.post('/comprar-com-saldo', async (req, res) => {
     const user = await User.findById(req.body.usuarioId);
     if (user && user.saldo >= 2) {
