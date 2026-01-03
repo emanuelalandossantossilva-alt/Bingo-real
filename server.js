@@ -21,6 +21,35 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 
+// --- LÓGICA DO CRONÔMETRO E SORTEIO (O QUE ESTAVA FALTANDO) ---
+setInterval(() => {
+    if (jogo.tempoRestante > 0) {
+        jogo.tempoRestante--;
+    } else if (jogo.fase === 'aguardando') {
+        jogo.fase = 'sorteio';
+        iniciarSorteio();
+    }
+}, 1000);
+
+function iniciarSorteio() {
+    let intervalo = setInterval(() => {
+        if (jogo.bolas.length < 75) {
+            let num;
+            do { num = Math.floor(Math.random() * 75) + 1; } 
+            while (jogo.bolas.includes(num));
+            jogo.bolas.push(num);
+        } else {
+            clearInterval(intervalo);
+            setTimeout(reiniciarJogo, 30000); // Reinicia após 30 segundos
+        }
+    }, 4000); // Sorteia uma bola a cada 4 segundos
+}
+
+function reiniciarJogo() {
+    jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
+}
+// -----------------------------------------------------------
+
 // Rota de Compra
 app.post('/comprar-com-saldo', async (req, res) => {
     try {
@@ -35,7 +64,7 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } catch (e) { res.status(500).json({ message: "Erro" }); }
 });
 
-// Rota de Status (Com a liberação que faltava)
+// Rota de Status
 app.get('/game-status', (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.json(jogo);
