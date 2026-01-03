@@ -29,7 +29,8 @@ const Saque = mongoose.model('Saque', new mongoose.Schema({
     status: { type: String, default: 'pendente' }, data: { type: Date, default: Date.now }
 }));
 
-let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
+// AJUSTE: Mudei para tempoSegundos para alinhar com o HTML
+let jogo = { bolas: [], fase: 'aguardando', tempoSegundos: 300, premioAcumulado: 0, ganhadorRodada: null };
 let premioReservadoProxima = 0;
 
 // --- GERAÇÃO DE PIX ---
@@ -74,20 +75,18 @@ app.post('/webhook', async (req, res) => {
     res.sendStatus(200);
 });
 
-// --- COMPRA DE CARTELAS (CORRIGIDA: ACUMULA PARA TODOS) ---
+// --- COMPRA DE CARTELAS ---
 app.post('/comprar-com-saldo', async (req, res) => {
     try {
         const { usuarioId } = req.body;
-        // Se o seu HTML enviar uma quantidade, ele usa. Se não, assume 1.
         const qtd = req.body.quantidade || 1; 
         const custoTotal = qtd * 2;
 
         const user = await User.findById(usuarioId);
         
         if (user && user.saldo >= custoTotal) {
-            user.saldo -= custoTotal; // Tira o valor total do saldo
+            user.saldo -= custoTotal; 
             
-            // Loop para criar cada cartela e somar no prêmio global
             for (let i = 0; i < qtd; i++) {
                 let c = [];
                 while(c.length < 10) { 
@@ -100,7 +99,7 @@ app.post('/comprar-com-saldo', async (req, res) => {
                     premioReservadoProxima += 1.5; 
                 } else { 
                     user.cartelas.push(c); 
-                    jogo.premioAcumulado += 1.5; // SOMA 1,50 PARA CADA CARTELA COMPRADA
+                    jogo.premioAcumulado += 1.5; 
                 }
             }
             
@@ -114,11 +113,15 @@ app.post('/comprar-com-saldo', async (req, res) => {
     }
 });
 
-// CRONÔMETRO
+// CRONÔMETRO (CORRIGIDO)
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
-        if (jogo.tempoRestante > 0) jogo.tempoRestante--;
-        else { jogo.fase = 'sorteio'; iniciarSorteio(); }
+        if (jogo.tempoSegundos > 0) {
+            jogo.tempoSegundos--;
+        } else { 
+            jogo.fase = 'sorteio'; 
+            iniciarSorteio(); 
+        }
     }
 }, 1000);
 
@@ -154,8 +157,8 @@ function finalizarRodada() {
                 $set: { cartelas: userEsp.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
-        // Próxima rodada começa com o que foi reservado
-        jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: premioReservadoProxima, ganhadorRodada: null };
+        // Ajuste no reset para manter o nome da variável
+        jogo = { bolas: [], fase: 'aguardando', tempoSegundos: 300, premioAcumulado: premioReservadoProxima, ganhadorRodada: null };
         premioReservadoProxima = 0;
     }, 15000);
 }
@@ -173,4 +176,4 @@ app.post('/register', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
-
+            
