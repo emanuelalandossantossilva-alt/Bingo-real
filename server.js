@@ -7,12 +7,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 1. CONFIGURAÇÃO MERCADO PAGO (TOKEN OFICIAL)
+// 1. CONFIGURAÇÃO MERCADO PAGO
 const client = new MercadoPagoConfig({ 
     accessToken: 'APP_USR-2683158167668377-123121-4666c74759e0eac123b8c4c23bf7c1f1-485513741' 
 });
 
-// 2. CONEXÃO MONGO (VARIÁVEL DE AMBIENTE)
+// 2. CONEXÃO MONGO
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log("Conectado ao MongoDB com sucesso!"))
     .catch(err => console.error("Erro ao conectar no MongoDB:", err));
@@ -25,39 +25,92 @@ const User = mongoose.model('User', new mongoose.Schema({
     cartelas: { type: Array, default: [] }
 }));
 
-let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
+let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
 
 // 3. LOOP DE TEMPO DO JOGO
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
         if (jogo.tempoRestante > 0) { jogo.tempoRestante--; } 
-        else { jogo.fase = 'sorteio'; iniciarSorteio(); }
+        else { 
+            jogo.fase = 'sorteio'; 
+            jogo.bolas = [];
+            jogo.ganhadorRodada = null;
+            iniciarSorteio(); 
+        }
     }
 }, 1000);
 
 function iniciarSorteio() {
     console.log("Iniciando sorteio...");
-    let intervalo = setInterval(() => {
-        if (jogo.bolas.length < 50) {
+    let intervalo = setInterval(async () => {
+        if (jogo.bolas.length < 50 && jogo.fase === 'sorteio') {
             let num;
             do { num = Math.floor(Math.random() * 50) + 1; } while (jogo.bolas.includes(num));
             jogo.bolas.push(num);
+
+            // VERIFICAÇÃO DE GANHADOR (CARTELA CHEIA)
+            const usuarios = await User.find({ "cartelas.0": { $exists: true } });
+            
+            for (let u of usuarios) {
+                for (let cartela de u.cartelas) {
+                    const ganhou = cartela.every(n => jogo.bolas.includes(n));
+                    if (ganhou) {
+                        console.log(`GANHADOR: ${u.name} levou R$ ${jogo.premioAcumulado}`);
+                        
+                        // Credita o prêmio no saldo do vencedor
+                        await User.findByIdAndUpdate(u._id, { $inc: { saldo: jogo.premioAcumulado } });
+                        
+                        jogo.ganhadorRodada = u.name;
+                        jogo.fase = 'finalizado';
+                        clearInterval(intervalo);
+                        
+                        // Reset após 15 segundos
+                        setTimeout(async () => {
+                            await User.updateMany({}, { cartelas: [] });
+                            jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
+                        }, 15000);
+                        return;
+                    }
+                }
+            }
         } else {
             clearInterval(intervalo);
+            jogo.fase = 'finalizado';
             setTimeout(async () => {
                 await User.updateMany({}, { cartelas: [] });
                 jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
-                console.log("Rodada resetada.");
-            }, 60000);
+            }, 10000);
         }
     }, 4000);
 }
 
-// 4. ROTA DE DEPÓSITO (MÍNIMO R$ 10)
+// 4. RANKING - CARTELAS MAIS MARCADAS
+app.get('/ranking-bingo', async (req, res) => {
+    try {
+        const usuarios = await User.find({ "cartelas.0": { $exists: true } });
+        let ranking = [];
+
+        usuarios.forEach(u => {
+            let melhorCartela = 0;
+            u.cartelas.forEach(c => {
+                let acertos = c.filter(n => jogo.bolas.includes(n)).length;
+                if (acertos > melhorCartela) melhorCartela = acertos;
+            });
+            if (melhorCartela > 0) {
+                ranking.push({ name: u.name, acertos: melhorCartela });
+            }
+        });
+
+        // Ordena do maior para o menor número de marcados
+        ranking.sort((a, b) => b.acertos - a.acertos);
+        res.json(ranking.slice(0, 10));
+    } catch (e) { res.status(500).send(); }
+});
+
+// 5. ROTA DE DEPÓSITO
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
-    if (!userId || Number(valor) < 10) return res.status(400).json({ erro: "Dados inválidos ou valor mínimo de R$ 10" });
-
+    if (!userId || Number(valor) < 10) return res.status(400).json({ erro: "Mínimo R$ 10" });
     const payment = new Payment(client);
     try {
         const result = await payment.create({
@@ -66,69 +119,35 @@ app.post('/gerar-pix', async (req, res) => {
                 description: `Depósito Bingo Real`,
                 payment_method_id: 'pix',
                 payer: { email: 'contato@bingoreal.com' },
-                metadata: { user_id: userId } // Crucial para o Webhook identificar o dono do dinheiro
+                metadata: { user_id: userId }
             }
         });
-
-        console.log(`PIX Gerado para o usuário: ${userId}`);
         res.json({
             qr_code: result.point_of_interaction.transaction_data.qr_code,
             qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64
         });
-    } catch (e) { 
-        console.error("Erro ao gerar PIX:", e);
-        res.status(500).json(e); 
-    }
+    } catch (e) { res.status(500).json(e); }
 });
 
-// 5. WEBHOOK AUTOMÁTICO (DINHEIRO REAL)
+// 6. WEBHOOK MERCADO PAGO
 app.post('/webhook', async (req, res) => {
     const { data, type } = req.body;
-
     if (type === 'payment') {
         try {
             const payment = new Payment(client);
             const p = await payment.get({ id: data.id });
-
             if (p.status === 'approved') {
                 const userId = p.metadata.user_id;
-                const valorRecebido = p.transaction_amount;
-
-                console.log(`PAGAMENTO APROVADO: Usuário ${userId} - R$ ${valorRecebido}`);
-
-                // Atualiza o saldo no banco de dados
-                await User.findByIdAndUpdate(userId, { $inc: { saldo: valorRecebido } });
-                console.log("Saldo atualizado no MongoDB com sucesso.");
+                await User.findByIdAndUpdate(userId, { $inc: { saldo: p.transaction_amount } });
             }
-        } catch (e) { 
-            console.error("Erro ao processar Webhook:", e.message); 
-        }
+        } catch (e) { console.error("Erro Webhook"); }
     }
-    // Sempre retorne 200 para o Mercado Pago
     res.sendStatus(200);
 });
 
-// 6. ROTA DE SAQUE (MÍNIMO R$ 20)
-app.post('/solicitar-saque', async (req, res) => {
-    const { userId, valor, chavePix } = req.body;
-    try {
-        const user = await User.findById(userId);
-        if (!user || user.saldo < Number(valor)) return res.status(400).json({ erro: "Saldo insuficiente" });
-        if (Number(valor) < 20) return res.status(400).json({ erro: "Saque mínimo R$ 20" });
-
-        user.saldo -= Number(valor);
-        await user.save();
-        console.log(`PEDIDO DE SAQUE: ${user.name} | R$ ${valor} | Chave: ${chavePix}`);
-        res.json({ ok: true });
-    } catch (e) { res.status(500).json({ erro: "Erro ao processar saque" }); }
-});
-
-// 7. DEMAIS ROTAS
+// 7. ROTAS DE USUÁRIO E JOGO
 app.get('/game-status', (req, res) => res.json(jogo));
-
-app.get('/user-data/:id', async (req, res) => {
-    try { res.json(await User.findById(req.params.id)); } catch(e) { res.status(404).send(); }
-});
+app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
 
 app.post('/login', async (req, res) => {
     const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
@@ -137,10 +156,10 @@ app.post('/login', async (req, res) => {
 
 app.post('/register', async (req, res) => {
     try {
-        const u = new User(req.body); 
+        const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password });
         await u.save(); 
         res.json({ok:true});
-    } catch(e) { res.status(400).json({erro: "Email já cadastrado"}); }
+    } catch(e) { res.status(400).send(); }
 });
 
 app.post('/comprar-com-saldo', async (req, res) => {
@@ -159,6 +178,15 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } else res.status(400).send();
 });
 
-// Inicia o servidor
+app.post('/solicitar-saque', async (req, res) => {
+    const { userId, valor, chavePix } = req.body;
+    const user = await User.findById(userId);
+    if (!user || user.saldo < Number(valor)) return res.status(400).json({ erro: "Saldo insuficiente" });
+    user.saldo -= Number(valor);
+    await user.save();
+    res.json({ ok: true });
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor Bingo rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
+         
