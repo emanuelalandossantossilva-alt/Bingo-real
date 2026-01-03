@@ -104,7 +104,7 @@
         <div class="caixa-premio" id="painelPremio">
             <div class="status-acumulando">ACUMULANDO...</div>
         </div>
-        <div id="timerTxt" style="font-size:24px; color:var(--primary); font-weight:bold; margin-bottom:10px;">05:00</div>
+        <div id="timerTxt" style="font-size:24px; color:var(--primary); font-weight:bold; margin-bottom:10px;">--:--</div>
         <div id="playerSaldo" style="color:var(--success); font-weight:bold; font-size:18px; margin-bottom:10px;">Saldo: R$ 0,00</div>
 
         <div style="background: #0f172a; padding: 12px; border-radius: 10px; margin-bottom:15px; border: 1px solid #334155;">
@@ -125,15 +125,16 @@
     const API = "https://bingo-backend-89dt.onrender.com";
     let USER_ID = localStorage.getItem('userId');
     let cartelasVencedorasExibidas = new Set();
-    let segundosRestantes = 300; // 5 minutos iniciais
+    let segundosRestantes = 0;
 
     function formatarTempo(s) {
+        if (s < 0) return "00:00";
         const min = Math.floor(s / 60);
         const seg = s % 60;
         return `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
     }
 
-    // Temporizador que desce de 1 em 1 segundo
+    // Cronômetro local (roda independente do servidor para ser fluido)
     setInterval(() => {
         if (segundosRestantes > 0) {
             segundosRestantes--;
@@ -198,8 +199,15 @@
 
             document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
             
-            // Sincroniza o tempo com o servidor apenas para evitar desvio, mas mantém 1s no display
-            if(jogo.tempoSegundos) segundosRestantes = jogo.tempoSegundos;
+            // SINCRONIZAÇÃO INTELIGENTE:
+            // Só forçamos o tempo do servidor se a diferença for maior que 2 segundos
+            // Isso evita que o relógio "fique voltando" por causa do lag da rede
+            if (jogo.tempoSegundos !== undefined) {
+                if (Math.abs(segundosRestantes - jogo.tempoSegundos) > 2 || segundosRestantes === 0) {
+                    segundosRestantes = jogo.tempoSegundos;
+                    document.getElementById('timerTxt').innerText = formatarTempo(segundosRestantes);
+                }
+            }
 
             const bolas = (jogo.bolas && jogo.bolas.length > 0) ? jogo.bolas : [];
             const painel = document.getElementById('painelPremio');
@@ -244,7 +252,8 @@
     if(USER_ID) { 
         document.getElementById('telaAuth').classList.add('hidden'); 
         document.getElementById('telaJogo').classList.remove('hidden'); 
-        setInterval(atualizarInterface, 2000); 
+        atualizarInterface(); // Roda uma vez imediatamente
+        setInterval(atualizarInterface, 3000); // Atualiza a cada 3 segundos
     }
 </script>
 </body>
