@@ -17,6 +17,7 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log("Conectado ao MongoDB!"))
     .catch(err => console.error("Erro Mongo:", err));
 
+// MODELO DE USUÁRIO
 const User = mongoose.model('User', new mongoose.Schema({
     name: String, 
     email: { type: String, unique: true }, 
@@ -26,9 +27,18 @@ const User = mongoose.model('User', new mongoose.Schema({
     cartelasProximaRodada: { type: Array, default: [] }
 }));
 
-// Variáveis de controle
+// NOVO: MODELO DE SAQUE (Para você controlar quem pediu)
+const Saque = mongoose.model('Saque', new mongoose.Schema({
+    userId: String,
+    userName: String,
+    valor: Number,
+    chavePix: String,
+    status: { type: String, default: 'pendente' }, // pendente, pago
+    data: { type: Date, default: Date.now }
+}));
+
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
-let premioReservadoProxima = 0; // CAIXINHA DE DINHEIRO PARA O PRÓXIMO SORTEIO
+let premioReservadoProxima = 0;
 
 // 3. LOOP DO CRONÔMETRO
 setInterval(() => {
@@ -59,7 +69,7 @@ function iniciarSorteio() {
                         jogo.ganhadorRodada = u.name;
                         jogo.fase = 'finalizado';
                         clearInterval(intervalo);
-                        finalizarRodada(); // CHAMA A LIMPEZA E TRANSFERÊNCIA
+                        finalizarRodada();
                         return;
                     }
                 }
@@ -72,62 +82,80 @@ function iniciarSorteio() {
     }, 4000);
 }
 
-// FUNÇÃO QUE JUNTA AS CARTELAS E O DINHEIRO PARA A PRÓXIMA RODADA
 async function finalizarRodada() {
     setTimeout(async () => {
-        // 1. Limpa quem jogou agora
         await User.updateMany({}, { cartelas: [] });
-
-        // 2. Transfere cartelas da reserva para o jogo principal
         const emEspera = await User.find({ "cartelasProximaRodada.0": { $exists: true } });
         for (let userEsp of emEspera) {
             await User.findByIdAndUpdate(userEsp._id, {
                 $set: { cartelas: userEsp.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
-
-        // 3. PEGA O DINHEIRO DA CAIXINHA E JOGA NO NOVO PRÊMIO
         let valorParaNovaRodada = premioReservadoProxima;
-        premioReservadoProxima = 0; // Zera a caixinha
-
-        jogo = { 
-            bolas: [], 
-            fase: 'aguardando', 
-            tempoRestante: 300, 
-            premioAcumulado: valorParaNovaRodada, 
-            ganhadorRodada: null 
-        };
-        console.log("Nova rodada iniciada. Prêmio inicial: R$" + valorParaNovaRodada);
+        premioReservadoProxima = 0;
+        jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: valorParaNovaRodada, ganhadorRodada: null };
     }, 15000);
 }
 
-// 4. ROTA DE COMPRA COM LÓGICA DE DINHEIRO RESERVADO
+// 4. ROTAS DE COMPRA E JOGO
 app.post('/comprar-com-saldo', async (req, res) => {
     const user = await User.findById(req.body.usuarioId);
     if (user && user.saldo >= 2) {
         user.saldo -= 2;
-        
         let c = [];
         while(c.length < 10) {
             let n = Math.floor(Math.random() * 50) + 1;
             if(!c.includes(n)) c.push(n);
         }
         const novaCartela = c.sort((a,b)=>a-b);
-
         if (jogo.fase === 'sorteio') {
-            // DINHEIRO E CARTELA VÃO PARA A PRÓXIMA RODADA
             user.cartelasProximaRodada.push(novaCartela);
             premioReservadoProxima += 1.5;
             await user.save();
-            res.json({ msg: "Sorteio em andamento! Sua cartela e os R$ 1,50 do prêmio foram guardados para a PRÓXIMA rodada." });
+            res.json({ msg: "Sorteio em andamento! Sua cartela e prêmio guardados para a PRÓXIMA rodada." });
         } else {
-            // ENTRA NA RODADA ATUAL
             user.cartelas.push(novaCartela);
             jogo.premioAcumulado += 1.5;
             await user.save();
             res.json({ msg: "Cartela comprada! R$ 1,50 adicionados ao prêmio atual." });
         }
     } else res.status(400).send("Saldo insuficiente");
+});
+
+// --- NOVA ROTA: PEDIR SAQUE (MANUAL) ---
+app.post('/pedir-saque', async (req, res) => {
+    const { userId, valor, chavePix } = req.body;
+    try {
+        const user = await User.findById(userId);
+        const valorNum = Number(valor);
+
+        if (!user || user.saldo < valorNum || valorNum < 20) {
+            return res.status(400).json({ erro: "Saldo insuficiente ou valor abaixo do mínimo (R$ 20)." });
+        }
+
+        // 1. Tira o saldo do usuário imediatamente
+        user.saldo -= valorNum;
+        await user.save();
+
+        // 2. Cria o registro do saque para você ver
+        const novoSaque = new Saque({
+            userId: user._id,
+            userName: user.name,
+            valor: valorNum,
+            chavePix: chavePix
+        });
+        await novoSaque.save();
+
+        res.json({ ok: true, msg: "Solicitação de saque enviada! Aguarde o pagamento em sua chave PIX." });
+    } catch (e) {
+        res.status(500).json({ erro: "Erro ao processar pedido de saque." });
+    }
+});
+
+// ROTA PARA VOCÊ VER OS SAQUES PENDENTES (Admin básico)
+app.get('/admin/saques', async (req, res) => {
+    const saques = await Saque.find({ status: 'pendente' });
+    res.json(saques);
 });
 
 app.get('/game-status', (req, res) => res.json(jogo));
@@ -145,4 +173,3 @@ app.post('/register', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Bingo rodando!`));
-    
