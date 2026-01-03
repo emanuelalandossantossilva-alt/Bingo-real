@@ -1,176 +1,146 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BINGO LIVE - ORIGINAL</title>
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
-    <style>
-        body { font-family: 'Arial', sans-serif; background: #020617; color: #e2e8f0; margin: 0; padding: 10px; text-align: center; }
-        .premio-box { background: linear-gradient(90deg, #b45309, #f59e0b, #b45309); color: #fff; padding: 20px; border-radius: 15px; border: 2px solid #facc15; margin-bottom: 20px; }
-        .box { background: #1e293b; border-radius: 12px; padding: 15px; border: 1px solid #334155; margin-bottom: 15px; }
-        .valor-destaque { color: #22c55e; font-weight: bold; font-size: 1.5rem; }
-        input { width: 85%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; text-align: center; }
-        .btn { padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; margin-top: 10px; }
-        .btn-green { background: #22c55e; color: white; }
-        .btn-blue { background: #3b82f6; color: white; }
-        #telaAuth { position: fixed; top:0; left:0; width:100%; height:100%; background:#020617; z-index:1000; display:flex; align-items:center; justify-content:center; }
-        .auth-card { background:#1e293b; padding:25px; border-radius:15px; width:90%; max-width:350px; border: 1px solid #334155; }
-        .bola { display: inline-flex; width: 35px; height: 35px; align-items: center; justify-content: center; font-weight: bold; margin: 3px; border-radius: 50%; background: #334155; border: 1px solid #facc15; color: white; }
-        .sorteada { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
-        #modalPix { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center; }
-        .modal-content { background: #1e293b; padding: 20px; border-radius: 15px; width: 85%; max-width: 320px; border: 2px solid #3b82f6; }
-    </style>
-</head>
-<body>
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const app = express();
 
-<div id="telaAuth">
-    <div class="auth-card">
-        <h2 style="color:#facc15; margin-top:0;">BINGO LIVE</h2>
-        <div id="formLogin">
-            <input type="email" id="emailLogin" placeholder="Seu E-mail">
-            <input type="password" id="senhaLogin" placeholder="Sua Senha">
-            <button class="btn btn-green" onclick="autenticar('login')">ENTRAR</button>
-            <p style="font-size: 0.8rem; margin-top:10px;">Novo por aqui? <a href="#" onclick="alternarAuth('cadastro')" style="color:#3b82f6;">Cadastrar</a></p>
-        </div>
-        <div id="formCadastro" style="display:none;">
-            <input type="text" id="nomeReg" placeholder="Nome Completo">
-            <input type="email" id="emailReg" placeholder="E-mail">
-            <input type="password" id="senhaReg" placeholder="Senha">
-            <button class="btn btn-blue" onclick="autenticar('cadastro')">CRIAR CONTA</button>
-            <p style="font-size: 0.8rem; margin-top:10px;"><a href="#" onclick="alternarAuth('login')" style="color:#3b82f6;">Voltar ao Login</a></p>
-        </div>
-    </div>
-</div>
+app.use(express.json());
+app.use(cors());
 
-<div class="premio-box">
-    <small>PRÊMIO TOTAL</small><br>
-    <b style="font-size:2.2rem;" id="txtAcumulado">ACUMULANDO...</b>
-</div>
+// CONEXÃO
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB Conectado"))
+  .catch(err => console.log("Erro MongoDB:", err));
 
-<div class="box">
-    <div style="display:flex; justify-content: space-between; align-items:center;">
-        <div style="text-align:left;">
-            <small style="color:#94a3b8;">MEU SALDO:</small><br>
-            <span class="valor-destaque" id="saldoUser">R$ 0,00</span>
-        </div>
-        <div style="text-align:right;">
-            <small style="color:#94a3b8;">JOGADOR:</small><br>
-            <span id="nomeUser" style="font-weight:bold; color:#facc15;">...</span>
-        </div>
-    </div>
-    <div style="background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #4ade80; margin-top:10px;">
-        <p style="font-size: 0.8rem; color:#94a3b8; margin-bottom:5px;">QUANTAS CARTELAS?</p>
-        <input type="number" id="qtdCartelas" value="1" min="1" oninput="document.getElementById('totalTxt').innerText = (this.value * 2).toFixed(2)">
-        <p>Total: R$ <span id="totalTxt">2,00</span></p>
-        <button class="btn btn-blue" onclick="comprarComSaldo()">USAR MEU SALDO</button>
-        <button class="btn btn-green" onclick="gerarPagamentoCartela()">COMPRAR VIA PIX</button>
-    </div>
-</div>
+// MODELO
+const User = mongoose.model('User', new mongoose.Schema({
+    name: String,
+    email: { type: String, unique: true },
+    senha: { type: String, required: true },
+    saldo: { type: Number, default: 0 }
+}));
 
-<div class="box">
-    <h3 id="txtStatus" style="margin:0; color:#facc15;">INÍCIO EM:</h3>
-    <div id="timer" style="font-size: 3.5rem; font-weight: bold; color: #22c55e;">05:00</div>
-    <div id="containerBolas"></div>
-</div>
+// ESTADO DO JOGO (Agora com limite de 50 bolas)
+let jogo = { 
+    bolas: [], 
+    fase: 'aguardando', 
+    tempoRestante: 300, 
+    premioAcumulado: 0 
+};
 
-<div id="modalPix">
-    <div class="modal-content">
-        <h3 style="color:#facc15;">PAGAMENTO PIX</h3>
-        <div id="loadingPix">Gerando QR Code...</div>
-        <div id="qrContainer" style="display:none;">
-            <div style="background:white; padding:10px; border-radius:10px; margin-bottom:15px;"><img id="imgQr" src="" style="width:100%;"></div>
-            <button class="btn btn-blue" onclick="copiarPix()">COPIAR CÓDIGO</button>
-        </div>
-        <button class="btn" style="background:#475569; color:white;" onclick="document.getElementById('modalPix').style.display='none'">FECHAR</button>
-    </div>
-</div>
-
-<script>
-    const API = "https://bingo-backend-89dt.onrender.com"; 
-    let usuarioAtivo = null;
-    let pixCopiaCola = "";
-
-    function id(el) { return document.getElementById(el); }
-    function alternarAuth(tipo) { id('formLogin').style.display = tipo === 'login' ? 'block' : 'none'; id('formCadastro').style.display = tipo === 'cadastro' ? 'block' : 'none'; }
-
-    async function autenticar(tipo) {
-        const isLogin = tipo === 'login';
-        const body = isLogin ? { email: id('emailLogin').value, senha: id('senhaLogin').value } : { name: id('nomeReg').value, email: id('emailReg').value, senha: id('senhaReg').value };
-        try {
-            const res = await fetch(`${API}/${isLogin?'login':'register'}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
-            const data = await res.json();
-            if(res.ok) {
-                if(isLogin) {
-                    usuarioAtivo = data.user;
-                    id('nomeUser').innerText = usuarioAtivo.name.toUpperCase();
-                    id('saldoUser').innerText = `R$ ${usuarioAtivo.saldo.toFixed(2)}`;
-                    id('telaAuth').style.display = 'none';
-                    setInterval(sincronizar, 2000);
-                } else { alert("Conta criada! Entre agora."); alternarAuth('login'); }
-            } else { alert(data.message); }
-        } catch (e) { alert("Conectando ao servidor..."); }
+// CRONÔMETRO
+setInterval(() => {
+    if (jogo.tempoRestante > 0) {
+        jogo.tempoRestante--;
+    } else if (jogo.fase === 'aguardando') {
+        jogo.fase = 'sorteio';
+        iniciarSorteio();
     }
+}, 1000);
 
-    async function sincronizar() {
-        if(!usuarioAtivo) return;
-        try {
-            const res = await fetch(`${API}/game-status`);
-            const st = await res.json();
+// SORTEIO LIMITADO A 50 BOLAS
+function iniciarSorteio() {
+    let intervalo = setInterval(() => {
+        if (jogo.bolas.length < 50) { // Alterado para 50 bolas
+            let num;
+            do { num = Math.floor(Math.random() * 50) + 1; } 
+            while (jogo.bolas.includes(num));
+            jogo.bolas.push(num);
+        } else {
+            clearInterval(intervalo);
+            setTimeout(reiniciarJogo, 30000);
+        }
+    }, 4000); 
+}
+
+function reiniciarJogo() {
+    jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
+}
+
+// FUNÇÃO PARA GERAR CARTELA DE 10 NÚMEROS ALEATÓRIOS (Sem sequências simples)
+function gerarCartelaUnica() {
+    let numeros = [];
+    while (numeros.length < 10) { // Agora com 10 números
+        let num = Math.floor(Math.random() * 50) + 1;
+        if (!numeros.includes(num)) {
+            numeros.push(num);
+        }
+    }
+    // Ordena para facilitar a visualização, mas os números são aleatórios
+    return numeros.sort((a, b) => a - b);
+}
+
+// ROTA DE COMPRA (Cartela R$ 2 | Acumulado R$ 1,50)
+app.post('/comprar-com-saldo', async (req, res) => {
+    try {
+        const { usuarioId, quantidade } = req.body;
+        const user = await User.findById(usuarioId);
+        const custoTotal = quantidade * 2;
+        const valorParaPremio = quantidade * 1.5;
+
+        if (user && user.saldo >= custoTotal) {
+            user.saldo -= custoTotal;
+            await user.save();
             
-            // REGRA: Só mostra valor se a fase for 'sorteio'
-            if(st.fase === 'sorteio' && st.premioAcumulado > 0) {
-                id('txtAcumulado').innerText = `R$ ${st.premioAcumulado.toFixed(2)}`;
-            } else {
-                id('txtAcumulado').innerText = "ACUMULANDO...";
-            }
-
-            if(st.tempoRestante !== undefined) {
-                let min = Math.floor(st.tempoRestante / 60);
-                let seg = st.tempoRestante % 60;
-                id('timer').innerText = `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
-                id('txtStatus').innerText = st.fase === 'sorteio' ? "SORTEIO EM ANDAMENTO:" : "INÍCIO EM:";
-            }
-
-            if(st.bolas) id('containerBolas').innerHTML = st.bolas.map(b => `<div class="bola sorteada">${b}</div>`).join('');
+            jogo.premioAcumulado += valorParaPremio;
             
-            const resU = await fetch(`${API}/user-data/${usuarioAtivo._id}`);
-            const dataU = await resU.json();
-            id('saldoUser').innerText = `R$ ${dataU.saldo.toFixed(2)}`;
-        } catch (e) { }
-    }
-
-    async function comprarComSaldo() {
-        const qtd = id('qtdCartelas').value;
-        try {
-            const res = await fetch(`${API}/comprar-com-saldo`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ usuarioId: usuarioAtivo._id, quantidade: qtd }) 
-            });
-            if(res.ok) { alert("Compra realizada!"); sincronizar(); }
-            else { const d = await res.json(); alert(d.message); }
-        } catch (e) { alert("Erro na compra."); }
-    }
-
-    async function gerarPagamentoCartela() {
-        const qtd = id('qtdCartelas').value;
-        id('modalPix').style.display = 'flex'; id('qrContainer').style.display = 'none'; id('loadingPix').style.display = 'block';
-        try {
-            const res = await fetch(`${API}/gerar-pix`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ valor: qtd * 2.00, usuarioId: usuarioAtivo._id, quantidade: qtd }) 
-            });
-            const data = await res.json();
-            if(data.qr_code_base64) {
-                pixCopiaCola = data.qr_code;
-                id('imgQr').src = `data:image/png;base64,${data.qr_code_base64}`;
-                id('loadingPix').style.display = 'none'; id('qrContainer').style.display = 'block';
+            // Gera as cartelas de 10 números para o jogador
+            let novasCartelas = [];
+            for(let i=0; i<quantidade; i++) {
+                novasCartelas.push(gerarCartelaUnica());
             }
-        } catch (e) { alert("Erro PIX"); id('modalPix').style.display='none'; }
-    }
-    function copiarPix() { navigator.clipboard.writeText(pixCopiaCola); alert("Copiado!"); }
-</script>
-</body>
-</html>
+
+            res.set('Access-Control-Allow-Origin', '*');
+            res.json({ 
+                message: "Sucesso", 
+                novoSaldo: user.saldo,
+                cartelas: novasCartelas 
+            });
+        } else { 
+            res.status(400).json({ message: "Saldo insuficiente" }); 
+        }
+    } catch (e) { res.status(500).json({ message: "Erro" }); }
+});
+
+// RANKING E OUTRAS ROTAS
+app.get('/top-10', async (req, res) => {
+    const topUsers = await User.find({}, 'name saldo').sort({ saldo: -1 }).limit(10);
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json(topUsers);
+});
+
+app.get('/game-status', (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json(jogo);
+});
+
+app.get('/users', async (req, res) => {
+    const users = await User.find();
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json(users);
+});
+
+app.post('/add-saldo', async (req, res) => {
+    const { userId, amount } = req.body;
+    const user = await User.findById(userId);
+    user.saldo += amount;
+    await user.save();
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json({ message: "OK" });
+});
+
+app.post('/login', async (req, res) => {
+    const user = await User.findOne({ email: req.body.email, senha: req.body.senha });
+    if(user) res.json({ user });
+    else res.status(401).json({ message: "Erro" });
+});
+
+app.post('/register', async (req, res) => {
+    try {
+        const newUser = new User(req.body);
+        await newUser.save();
+        res.json({ message: "Criado" });
+    } catch (e) { res.status(400).json({ message: "Erro" }); }
+});
+
+app.listen(process.env.PORT || 3000);
+                
