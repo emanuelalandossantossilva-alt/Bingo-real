@@ -32,8 +32,7 @@ const Saque = mongoose.model('Saque', new mongoose.Schema({
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
 let premioReservadoProxima = 0;
 
-// --- ROTA DE EMERGÊNCIA (ADICIONAR SALDO MANUAL) ---
-// Se o PIX falhar, você acessa: seu-site.com/add-saldo/EMAIL-DO-CARA/VALOR
+// --- ROTA DE EMERGÊNCIA (PARA VOCÊ TESTAR SE O SALDO APARECE) ---
 app.get('/add-saldo/:email/:valor', async (req, res) => {
     try {
         const user = await User.findOneAndUpdate(
@@ -42,10 +41,10 @@ app.get('/add-saldo/:email/:valor', async (req, res) => {
             { new: true }
         );
         res.send(`Sucesso! Novo saldo de ${user.email}: R$ ${user.saldo}`);
-    } catch (e) { res.send("Erro ao achar usuário"); }
+    } catch (e) { res.send("Erro ao achar usuário. Verifique se o e-mail está certo!"); }
 });
 
-// ROTA PARA GERAR PIX
+// --- ROTA PARA GERAR PIX ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
     try {
@@ -57,17 +56,17 @@ app.post('/gerar-pix', async (req, res) => {
                 description: 'Deposito Bingo Real',
                 payment_method_id: 'pix',
                 payer: { email: user.email },
-                notification_url: 'https://bingo-backend-89dt.onrender.com/webhook'
+                notification_url: 'https://bingo-backend-89dt.onrender.com/webhook' 
             }
         });
         res.json({
             qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64,
             qr_code: result.point_of_interaction.transaction_data.qr_code
         });
-    } catch (error) { res.status(500).json({ erro: "Erro no PIX" }); }
+    } catch (error) { res.status(500).json({ erro: "Erro ao gerar PIX" }); }
 });
 
-// WEBHOOK (SALDO AUTOMÁTICO)
+// --- WEBHOOK (O LUGAR CERTO PARA O SALDO CAIR AUTOMÁTICO) ---
 app.post('/webhook', async (req, res) => {
     const { action, data } = req.body;
     if (action === "payment.created" || req.query["data.id"]) {
@@ -80,17 +79,23 @@ app.post('/webhook', async (req, res) => {
                     { email: p.payer.email }, 
                     { $inc: { saldo: p.transaction_amount } }
                 );
+                console.log("Saldo adicionado via Webhook!");
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Erro no Webhook:", e); }
     }
     res.sendStatus(200);
 });
 
-// CRONÔMETRO
+// 3. LOOP DO CRONÔMETRO (1 EM 1 SEGUNDO)
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
-        if (jogo.tempoRestante > 0) jogo.tempoRestante--;
-        else { jogo.fase = 'sorteio'; iniciarSorteio(); }
+        if (jogo.tempoRestante > 0) { jogo.tempoRestante--; } 
+        else { 
+            jogo.fase = 'sorteio'; 
+            jogo.bolas = [];
+            jogo.ganhadorRodada = null;
+            iniciarSorteio(); 
+        }
     }
 }, 1000);
 
@@ -100,6 +105,7 @@ function iniciarSorteio() {
             let num;
             do { num = Math.floor(Math.random() * 50) + 1; } while (jogo.bolas.includes(num));
             jogo.bolas.push(num);
+
             const usuarios = await User.find({ "cartelas.0": { $exists: true } });
             for (let u of usuarios) {
                 for (let cartela of u.cartelas) {
@@ -136,7 +142,7 @@ async function finalizarRodada() {
     }, 15000);
 }
 
-// COMPRAR CARTELA
+// ROTAS RESTANTES
 app.post('/comprar-com-saldo', async (req, res) => {
     const user = await User.findById(req.body.usuarioId);
     if (user && user.saldo >= 2) {
@@ -148,7 +154,7 @@ app.post('/comprar-com-saldo', async (req, res) => {
             user.cartelasProximaRodada.push(novaCartela);
             premioReservadoProxima += 1.5;
             await user.save();
-            res.json({ msg: "Guardado para a PRÓXIMA rodada!" });
+            res.json({ msg: "Sorteio em andamento! Guardado para a PRÓXIMA." });
         } else {
             user.cartelas.push(novaCartela);
             jogo.premioAcumulado += 1.5;
@@ -182,3 +188,4 @@ app.post('/register', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Bingo rodando!`));
+
