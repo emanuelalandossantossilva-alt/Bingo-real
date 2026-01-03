@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bingo Real - Oficial</title>
     <style>
-        body { font-family: sans-serif; background: #020617; color: white; text-align: center; margin: 0; padding: 10px; }
-        .card { background: #1e293b; padding: 15px; border-radius: 12px; border: 1px solid #facc15; margin: 10px auto; max-width: 380px; box-sizing: border-box; }
+        :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
+        body { font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 10px; }
+        .card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--primary); margin: 10px auto; max-width: 380px; box-sizing: border-box; }
         .hidden { display: none !important; }
         
         /* Inputs e Botões */
@@ -14,21 +15,40 @@
         button { width: 100%; padding: 14px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin: 5px 0; text-transform: uppercase; }
         
         /* Ranking */
-        .item-ranking { background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #facc15; display: flex; justify-content: space-between; align-items: center; }
-        .posicao { color: #facc15; font-weight: bold; margin-right: 10px; }
+        .item-ranking { background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        .posicao { color: var(--primary); font-weight: bold; margin-right: 10px; }
         .nome-user { flex-grow: 1; text-align: left; font-size: 14px; }
-        .pontos { background: #22c55e; padding: 4px 8px; border-radius: 5px; font-size: 12px; }
+        .pontos { background: var(--success); padding: 4px 8px; border-radius: 5px; font-size: 12px; }
 
         /* Jogo */
-        .caixa-premio { background: #064e3b; border: 2px solid #22c55e; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 10px; border-radius: 10px; margin-bottom: 15px; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
         .valor-acumulado { font-size: 26px; color: #4ade80; font-weight: bold; }
+        .acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; }
+        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
         .abas { display: flex; background: #0f172a; border-radius: 8px; padding: 4px; margin-bottom: 10px; }
         .aba { cursor: pointer; padding: 8px; color: #94a3b8; flex: 1; font-size: 12px; font-weight: bold; border-radius: 6px; }
-        .aba.ativa { color: #020617; background: #facc15; }
-        .bola-sorteada { width: 22px; height: 22px; background: #facc15; color: black; border-radius: 50%; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .aba.ativa { color: #020617; background: var(--primary); }
+        .bola-sorteada { width: 22px; height: 22px; background: var(--primary); color: black; border-radius: 50%; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+
+        /* MODAL PIX */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 99999; }
+        .modal-content { background: white; padding: 20px; border-radius: 20px; color: black; width: 85%; max-width: 320px; }
+        .qr-img { width: 100%; max-width: 200px; height: auto; margin: 10px auto; display: block; }
+        .copia-cola { background: #f1f5f9; padding: 10px; border-radius: 8px; font-size: 10px; word-break: break-all; font-family: monospace; border: 1px solid #ccc; margin: 10px 0; }
     </style>
 </head>
 <body>
+
+<div id="modalPix" class="modal hidden">
+    <div class="modal-content">
+        <h2 style="margin:0;">Pagar via PIX</h2>
+        <img id="qrImagem" class="qr-img" src="" alt="QR Code">
+        <div id="qrTexto" class="copia-cola">Carregando...</div>
+        <button onclick="copiarPix()" style="background: #2563eb; color: white;">COPIAR CÓDIGO</button>
+        <button onclick="fecharPix()" style="background: #ef4444; color: white;">FECHAR</button>
+    </div>
+</div>
 
 <div id="telaLogin" class="card">
     <h2 style="color:#facc15;">BINGO REAL</h2>
@@ -50,7 +70,7 @@
 <div id="telaJogo" class="hidden">
     <div class="card">
         <div class="caixa-premio">
-            <div id="suspenseTxt" style="color:#facc15; font-size:14px;">PRÊMIO ACUMULANDO...</div>
+            <div id="suspenseTxt" class="acumulando">PRÊMIO ACUMULANDO...</div>
             <div id="valorRevelado" class="hidden">
                 <small style="color:#4ade80;">VALOR EM JOGO</small>
                 <div id="valorPremio" class="valor-acumulado">R$ 0,00</div>
@@ -88,22 +108,56 @@
     </div>
 </div>
 
+<script src="https://sdk.mercadopago.com/js/v2"></script>
 <script>
     const API = "https://bingo-backend-89dt.onrender.com";
+    const PUBLIC_KEY = "APP_USR-3f875a4f-aff1-4b7b-902e-4494b11b472d";
     let USER_ID = localStorage.getItem('userId');
+    const mp = new MercadoPago(PUBLIC_KEY);
 
     function mostrarLogin() { document.getElementById('telaLogin').classList.remove('hidden'); document.getElementById('telaCadastro').classList.add('hidden'); }
     function mostrarCadastro() { document.getElementById('telaLogin').classList.add('hidden'); document.getElementById('telaCadastro').classList.remove('hidden'); }
 
+    // --- FUNÇÃO PIX ---
+    async function abrirPix() {
+        const valor = prompt("Quanto deseja depositar?", "10");
+        if (!valor || valor < 10) return alert("Mínimo R$ 10");
+
+        try {
+            const res = await fetch(`${API}/gerar-pix`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId: USER_ID, valor: parseFloat(valor) })
+            });
+            const data = await res.json();
+            
+            // Ajustado para bater com seu server: qr_code_base64 e qr_code
+            if(data.qr_code_base64) {
+                document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
+                document.getElementById('qrTexto').innerText = data.qr_code;
+                document.getElementById('modalPix').classList.remove('hidden');
+            }
+        } catch (e) { alert("Erro ao gerar PIX"); }
+    }
+
+    function fecharPix() { document.getElementById('modalPix').classList.add('hidden'); }
+    function copiarPix() {
+        navigator.clipboard.writeText(document.getElementById('qrTexto').innerText);
+        alert("Código copiado!");
+    }
+
+    // --- ATUALIZAÇÃO ---
     async function atualizarInterface() {
         if(!USER_ID) return;
         try {
             const res = await fetch(`${API}/game-status`);
             const jogo = await res.json();
             
-            document.getElementById('timerTxt').innerText = jogo.tempoRestante;
+            // Timer
+            const min = Math.floor(jogo.tempoRestante / 60).toString().padStart(2, '0');
+            const seg = (jogo.tempoRestante % 60).toString().padStart(2, '0');
+            document.getElementById('timerTxt').innerText = `${min}:${seg}`;
 
-            // Mostrar Valor e Bolas
             if (jogo.bolas && jogo.bolas.length > 0) {
                 document.getElementById('suspenseTxt').classList.add('hidden');
                 document.getElementById('valorRevelado').classList.remove('hidden');
@@ -112,17 +166,6 @@
                 document.getElementById('btnComprar').disabled = true;
                 document.getElementById('btnComprar').innerText = "EM JOGO";
                 document.getElementById('historicoBolas').innerHTML = jogo.bolas.map(b => `<div class="bola-sorteada">${b}</div>`).join('');
-                
-                // Atualizar Ranking Top 10
-                if (jogo.todasCartelas) {
-                    const top10 = jogo.todasCartelas.sort((a,b) => b.acertos - a.acertos).slice(0, 10);
-                    document.getElementById('listaRanking').innerHTML = top10.map((c, i) => `
-                        <div class="item-ranking">
-                            <span class="posicao">#${i+1}</span>
-                            <span class="nome-user">${c.nomeJogador}</span>
-                            <span class="pontos">${c.acertos} ACERTOS</span>
-                        </div>`).join('');
-                }
             } else {
                 document.getElementById('suspenseTxt').classList.remove('hidden');
                 document.getElementById('valorRevelado').classList.add('hidden');
@@ -132,7 +175,7 @@
                 document.getElementById('historicoBolas').innerHTML = "";
             }
 
-            // Saldo do usuário
+            // Saldo
             const resUser = await fetch(`${API}/user-data/${USER_ID}`);
             const user = await resUser.json();
             document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
@@ -161,7 +204,7 @@
 
     async function comprarCartelas() {
         const qtd = document.getElementById('qtdCartelas').value;
-        await fetch(`${API}/comprar-com-saldo-multiplo`, {
+        await fetch(`${API}/comprar-com-saldo`, { // Verifique se o nome da rota no server é esse ou 'comprar-com-saldo-multiplo'
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd })
         });
@@ -179,6 +222,7 @@
         document.getElementById('telaLogin').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
         setInterval(atualizarInterface, 3000);
+        atualizarInterface();
     }
 </script>
 </body>
