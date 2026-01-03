@@ -6,12 +6,10 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Conexão com o Banco de Dados
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB Conectado"))
   .catch(err => console.log("Erro MongoDB:", err));
 
-// Modelo de Usuário
 const User = mongoose.model('User', new mongoose.Schema({
     name: String,
     email: { type: String, unique: true },
@@ -21,7 +19,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 
-// --- CRONÔMETRO ---
+// CRONÔMETRO (Já está funcionando!)
 setInterval(() => {
     if (jogo.tempoRestante > 0) {
         jogo.tempoRestante--;
@@ -49,46 +47,49 @@ function reiniciarJogo() {
     jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
 }
 
-// --- NOVAS ROTAS PARA O GERENTE.HTML FUNCIONAR ---
+// --- ROTAS DO GERENTE (PARA CORRIGIR O ERRO DE CONEXÃO) ---
 app.get('/users', async (req, res) => {
-    try {
-        const users = await User.find();
-        res.set('Access-Control-Allow-Origin', '*');
-        res.json(users);
-    } catch (e) { res.status(500).send(); }
+    const users = await User.find();
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json(users);
 });
 
 app.post('/add-saldo', async (req, res) => {
     try {
         const { userId, amount } = req.body;
         const user = await User.findById(userId);
-        if (user) {
-            user.saldo += amount;
-            await user.save();
-            res.set('Access-Control-Allow-Origin', '*');
-            res.json({ message: "Saldo atualizado" });
-        } else { res.status(404).json({ message: "Não encontrado" }); }
+        user.saldo += amount;
+        await user.save();
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json({ message: "OK" });
     } catch (e) { res.status(500).send(); }
 });
 
-// --- ROTAS DO JOGADOR ---
+// --- ROTA DE COMPRA (PARA CORRIGIR "ERRO NA COMPRA") ---
+app.post('/comprar-com-saldo', async (req, res) => {
+    try {
+        const { usuarioId, quantidade } = req.body;
+        const user = await User.findById(usuarioId);
+        if (user.saldo >= (quantidade * 2)) {
+            user.saldo -= (quantidade * 2);
+            await user.save();
+            jogo.premioAcumulado += (quantidade * 1);
+            res.set('Access-Control-Allow-Origin', '*');
+            res.json({ message: "Sucesso" });
+        } else { res.status(400).json({ message: "Saldo insuficiente" }); }
+    } catch (e) { res.status(500).json({ message: "Erro" }); }
+});
+
+// ROTAS DE LOGIN E STATUS
 app.get('/game-status', (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.json(jogo);
 });
 
-app.get('/user-data/:id', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        res.set('Access-Control-Allow-Origin', '*');
-        res.json(user);
-    } catch (e) { res.status(404).send(); }
-});
-
 app.post('/login', async (req, res) => {
     const user = await User.findOne({ email: req.body.email, senha: req.body.senha });
     if(user) res.json({ user });
-    else res.status(401).json({ message: "Erro no login" });
+    else res.status(401).json({ message: "Erro" });
 });
 
 app.post('/register', async (req, res) => {
@@ -96,7 +97,8 @@ app.post('/register', async (req, res) => {
         const newUser = new User(req.body);
         await newUser.save();
         res.json({ message: "Criado" });
-    } catch (e) { res.status(400).json({ message: "Erro ao criar" }); }
+    } catch (e) { res.status(400).json({ message: "Erro" }); }
 });
 
 app.listen(process.env.PORT || 3000);
+
