@@ -1,145 +1,146 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const app = express();
+const API = "https://bingo-backend-89dt.onrender.com";
+let USER_ID = localStorage.getItem('userId');
 
-app.use(express.json());
-app.use(cors());
+// 1. FUNÇÃO PARA CONTROLAR AS TELAS (Login, Cadastro ou Jogo)
+function mostrarTela(id) {
+    document.getElementById('telaLogin').classList.add('hidden');
+    document.getElementById('telaCadastro').classList.add('hidden');
+    document.getElementById('telaJogo').classList.add('hidden');
+    document.getElementById(id).classList.remove('hidden');
+}
 
-// CONEXÃO
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB Conectado"))
-  .catch(err => console.log("Erro MongoDB:", err));
+// 2. CARREGAR DADOS DO SERVIDOR (Cronômetro, Prêmio e Saldo)
+async function carregarDados() {
+    try {
+        const resStatus = await fetch(`${API}/game-status`);
+        if (!resStatus.ok) throw new Error("Erro de conexão");
+        const jogo = await resStatus.json();
 
-// MODELO
-const User = mongoose.model('User', new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true },
-    senha: { type: String, required: true },
-    saldo: { type: Number, default: 0 }
-}));
-
-// ESTADO DO JOGO (Agora com limite de 50 bolas)
-let jogo = { 
-    bolas: [], 
-    fase: 'aguardando', 
-    tempoRestante: 300, 
-    premioAcumulado: 0 
-};
-
-// CRONÔMETRO
-setInterval(() => {
-    if (jogo.tempoRestante > 0) {
-        jogo.tempoRestante--;
-    } else if (jogo.fase === 'aguardando') {
-        jogo.fase = 'sorteio';
-        iniciarSorteio();
-    }
-}, 1000);
-
-// SORTEIO LIMITADO A 50 BOLAS
-function iniciarSorteio() {
-    let intervalo = setInterval(() => {
-        if (jogo.bolas.length < 50) { // Alterado para 50 bolas
-            let num;
-            do { num = Math.floor(Math.random() * 50) + 1; } 
-            while (jogo.bolas.includes(num));
-            jogo.bolas.push(num);
+        // Atualiza o Cronômetro
+        const timerElemento = document.getElementById('timerTxt');
+        let min = Math.floor(jogo.tempoRestante / 60);
+        let seg = jogo.tempoRestante % 60;
+        
+        if (jogo.fase === 'sorteio') {
+            timerElemento.innerText = "SORTEANDO!";
+            timerElemento.style.color = "#facc15";
         } else {
-            clearInterval(intervalo);
-            setTimeout(reiniciarJogo, 30000);
+            timerElemento.innerText = `${min < 10 ? '0'+min : min}:${seg < 10 ? '0'+seg : seg}`;
+            timerElemento.style.color = "#4ade80";
         }
-    }, 4000); 
-}
 
-function reiniciarJogo() {
-    jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
-}
-
-// FUNÇÃO PARA GERAR CARTELA DE 10 NÚMEROS ALEATÓRIOS (Sem sequências simples)
-function gerarCartelaUnica() {
-    let numeros = [];
-    while (numeros.length < 10) { // Agora com 10 números
-        let num = Math.floor(Math.random() * 50) + 1;
-        if (!numeros.includes(num)) {
-            numeros.push(num);
+        // Lógica do Prêmio Acumulando
+        const premioElemento = document.getElementById('premioTxt');
+        if (jogo.fase === 'aguardando') {
+            premioElemento.innerText = "ACUMULANDO...";
+        } else {
+            premioElemento.innerText = `R$ ${jogo.premioAcumulado.toFixed(2)}`;
         }
+
+        // Atualiza Ranking Top 10
+        const resRank = await fetch(`${API}/top-10`);
+        const rank = await resRank.json();
+        document.getElementById('listaRanking').innerHTML = rank.map((u, i) => `
+            <div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom: 1px solid #334155;">
+                <span>${i+1}º ${u.name}</span>
+                <span style="color:#22c55e">R$ ${u.saldo.toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        // Se houver bolas sendo sorteadas (Limite 50)
+        if(jogo.bolas.length > 0) {
+            document.getElementById('bolasSorteadas').innerHTML = jogo.bolas.map(b => `
+                <div style="background:#facc15; color:black; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">${b}</div>
+            `).join('');
+        }
+
+        // Dados do Usuário Logado
+        if (USER_ID) {
+            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
+            const user = await resUser.json();
+            document.getElementById('nomePlayer').innerText = user.name.toUpperCase();
+            document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
+        }
+
+    } catch (e) {
+        console.log("Tentando conectar ao servidor...");
+        document.getElementById('timerTxt').innerText = "CONECTANDO...";
     }
-    // Ordena para facilitar a visualização, mas os números são aleatórios
-    return numeros.sort((a, b) => a - b);
 }
 
-// ROTA DE COMPRA (Cartela R$ 2 | Acumulado R$ 1,50)
-app.post('/comprar-com-saldo', async (req, res) => {
+// 3. COMPRAR CARTELA (Regra: R$ 2,00 e 10 números)
+async function comprarCartela() {
+    if (!USER_ID) return alert("Faça login primeiro!");
+    
     try {
-        const { usuarioId, quantidade } = req.body;
-        const user = await User.findById(usuarioId);
-        const custoTotal = quantidade * 2;
-        const valorParaPremio = quantidade * 1.5;
-
-        if (user && user.saldo >= custoTotal) {
-            user.saldo -= custoTotal;
-            await user.save();
-            
-            jogo.premioAcumulado += valorParaPremio;
-            
-            // Gera as cartelas de 10 números para o jogador
-            let novasCartelas = [];
-            for(let i=0; i<quantidade; i++) {
-                novasCartelas.push(gerarCartelaUnica());
-            }
-
-            res.set('Access-Control-Allow-Origin', '*');
-            res.json({ 
-                message: "Sucesso", 
-                novoSaldo: user.saldo,
-                cartelas: novasCartelas 
-            });
-        } else { 
-            res.status(400).json({ message: "Saldo insuficiente" }); 
+        const res = await fetch(`${API}/comprar-com-saldo`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ usuarioId: USER_ID, quantidade: 1 })
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            const div = document.createElement('div');
+            div.className = 'cartela';
+            // Desenha a cartela com os 10 números gerados
+            div.innerHTML = data.cartelas[0].map(n => `<div>${n}</div>`).join('');
+            document.getElementById('minhasCartelas').prepend(div);
+            alert("Cartela comprada com sucesso!");
+        } else {
+            alert("Saldo insuficiente ou erro na compra!");
         }
-    } catch (e) { res.status(500).json({ message: "Erro" }); }
-});
+    } catch (e) { alert("Erro ao conectar com o servidor."); }
+}
 
-// RANKING E OUTRAS ROTAS
-app.get('/top-10', async (req, res) => {
-    const topUsers = await User.find({}, 'name saldo').sort({ saldo: -1 }).limit(10);
-    res.set('Access-Control-Allow-Origin', '*');
-    res.json(topUsers);
-});
+// 4. LOGIN E CADASTRO
+async function fazerLogin() {
+    const email = document.getElementById('loginEmail').value;
+    const senha = document.getElementById('loginSenha').value;
+    const res = await fetch(`${API}/login`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email, senha })
+    });
+    const data = await res.json();
+    if(res.ok) {
+        localStorage.setItem('userId', data.user._id);
+        USER_ID = data.user._id;
+        location.reload(); 
+    } else { alert("Dados incorretos!"); }
+}
 
-app.get('/game-status', (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.json(jogo);
-});
+async function fazerCadastro() {
+    const dados = {
+        name: document.getElementById('cadNome').value,
+        email: document.getElementById('cadEmail').value,
+        senha: document.getElementById('cadSenha').value
+    };
+    const res = await fetch(`${API}/register`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(dados)
+    });
+    if(res.ok) { alert("Conta criada!"); mostrarTela('telaLogin'); }
+    else { alert("Erro no cadastro."); }
+}
 
-app.get('/users', async (req, res) => {
-    const users = await User.find();
-    res.set('Access-Control-Allow-Origin', '*');
-    res.json(users);
-});
+async function solicitarPix() {
+    await fetch(`${API}/solicitar-pix`, { method: 'POST' });
+    alert("Solicitação enviada ao Gerente Emanuel!");
+}
 
-app.post('/add-saldo', async (req, res) => {
-    const { userId, amount } = req.body;
-    const user = await User.findById(userId);
-    user.saldo += amount;
-    await user.save();
-    res.set('Access-Control-Allow-Origin', '*');
-    res.json({ message: "OK" });
-});
+function logout() {
+    localStorage.clear();
+    location.reload();
+}
 
-app.post('/login', async (req, res) => {
-    const user = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    if(user) res.json({ user });
-    else res.status(401).json({ message: "Erro" });
-});
+// INICIALIZAÇÃO
+if (USER_ID) {
+    mostrarTela('telaJogo');
+    setInterval(carregarDados, 2000); // Atualiza tudo a cada 2 segundos
+    carregarDados();
+} else {
+    mostrarTela('telaLogin');
+}
 
-app.post('/register', async (req, res) => {
-    try {
-        const newUser = new User(req.body);
-        await newUser.save();
-        res.json({ message: "Criado" });
-    } catch (e) { res.status(400).json({ message: "Erro" }); }
-});
-
-app.listen(process.env.PORT || 3000);
