@@ -10,16 +10,13 @@
         .card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--primary); margin: 10px auto; max-width: 380px; box-sizing: border-box; }
         .hidden { display: none !important; }
         
-        /* Efeito Acumulando */
         .acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; font-size: 20px; }
         @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-        /* Estilo Ganhador */
         .vitoria-animada { animation: brilhar-ouro 1s infinite alternate; border: 3px solid var(--primary); }
         @keyframes brilhar-ouro { from { box-shadow: 0 0 10px var(--primary); } to { box-shadow: 0 0 30px #ffffff, 0 0 40px var(--primary); } }
         .nome-vencedor { font-size: 32px; color: var(--primary); display: block; margin: 15px 0; text-transform: uppercase; font-weight: bold; }
 
-        /* Cartelas e Grid */
         .container-cartelas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
         .cartela { 
             background: #f8fafc; color: #1e293b; padding: 10px; border-radius: 8px; border: 2px solid var(--primary); 
@@ -29,7 +26,6 @@
         .numero { font-size: 11px; font-weight: bold; background: #e2e8f0; padding: 4px 0; border-radius: 4px; }
         .marcado { background: var(--success) !important; color: white; }
 
-        /* Base UI */
         input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
         button { width: 100%; padding: 14px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin: 5px 0; text-transform: uppercase; }
         .caixa-premio { background: #064e3b; border: 2px solid var(--success); padding: 15px; border-radius: 10px; margin-bottom: 15px; min-height: 70px; display: flex; align-items: center; justify-content: center; }
@@ -70,7 +66,6 @@
         <h2>🎊 BINGO! 🎊</h2>
         <p>Ganhador da Rodada:</p>
         <span id="nomeVencedor" class="nome-vencedor">---</span>
-        <div style="font-size: 40px;">💰</div>
         <button onclick="document.getElementById('modalGanhador').classList.add('hidden')" style="background:var(--primary); color:black;">FECHAR</button>
     </div>
 </div>
@@ -136,12 +131,13 @@
 </div>
 
 <script>
+    // LINHA DA API CONFIGURADA
     const API = "https://bingo-backend-89dt.onrender.com";
+    
     let USER_ID = localStorage.getItem('userId');
     let bolasSorteadas = [];
     let modalGanhadorAberto = false;
 
-    // AUTH
     function mudarAbaAuth(tipo) {
         document.getElementById('formLogin').classList.toggle('hidden', tipo !== 'login');
         document.getElementById('formCad').classList.toggle('hidden', tipo !== 'cad');
@@ -158,7 +154,7 @@
             const d = await res.json();
             localStorage.setItem('userId', d.user._id);
             location.reload();
-        } else alert("Erro no login!");
+        } else alert("Erro no login! Verifique e-mail e senha.");
     }
 
     async function fazerCadastro() {
@@ -172,17 +168,22 @@
 
     function logout() { localStorage.removeItem('userId'); location.reload(); }
 
-    // GAME
     function formatarTempo(segundos) {
         const min = Math.floor(segundos / 60).toString().padStart(2, '0');
         const seg = (segundos % 60).toString().padStart(2, '0');
         return `${min}:${seg}`;
     }
 
+    // ATUALIZAÇÃO AUTOMÁTICA EM 1 SEGUNDO
     async function atualizarInterface() {
         if(!USER_ID) return;
         try {
-            const resStatus = await fetch(`${API}/game-status`);
+            // BUSCA SALDO COM TRAVA ANTI-CACHE
+            const resUser = await fetch(`${API}/user-data/${USER_ID}?t=${Date.now()}`);
+            const user = await resUser.json();
+            document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
+            
+            const resStatus = await fetch(`${API}/game-status?t=${Date.now()}`);
             const jogo = await resStatus.json();
             bolasSorteadas = jogo.bolas || [];
 
@@ -193,40 +194,21 @@
             }
             if (jogo.fase === 'aguardando') modalGanhadorAberto = false;
 
-            if (jogo.premioAcumulado > 0 && bolasSorteadas.length > 0) {
-                document.getElementById('suspenseTxt').classList.add('hidden');
-                document.getElementById('valorRevelado').classList.remove('hidden');
-                document.getElementById('valorPremio').innerText = `R$ ${jogo.premioAcumulado.toFixed(2)}`;
-            } else {
-                document.getElementById('suspenseTxt').classList.remove('hidden');
-                document.getElementById('valorRevelado').classList.add('hidden');
-            }
-
             document.getElementById('timerTxt').innerText = formatarTempo(jogo.tempoRestante);
             document.getElementById('bolaGrande').innerText = bolasSorteadas.length > 0 ? bolasSorteadas[bolasSorteadas.length - 1] : "--";
             document.getElementById('historicoBolas').innerHTML = bolasSorteadas.map(b => `<div class="bola-sorteada">${b}</div>`).join('');
 
-            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
-            const user = await resUser.json();
-            document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
-            
             if(user.cartelas && user.cartelas.length > 0) {
                 document.getElementById('listaCartelas').innerHTML = user.cartelas.map((c, idx) => {
                     const marcados = c.filter(num => bolasSorteadas.includes(num)).length;
-                    return `
-                        <div class="cartela">
-                            <div style="font-size: 10px; font-weight: bold; color: #1e293b; border-bottom: 1px solid #ccc; margin-bottom: 5px; padding-bottom: 2px;">
-                                👤 ${user.name.toUpperCase()}
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 9px; color: #64748b; margin-bottom: 5px;">
-                                <span>ID #${idx+1}</span>
-                                <span style="color: var(--success); font-weight: bold;">${marcados}/${c.length}</span>
-                            </div>
-                            <div class="grid-cartela">
-                                ${c.map(num => `<div class="numero ${bolasSorteadas.includes(num) ? 'marcado' : ''}">${num}</div>`).join('')}
-                            </div>
+                    return `<div class="cartela">
+                        <div style="font-size: 10px; font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">👤 ${user.name.toUpperCase()}</div>
+                        <div style="display: flex; justify-content: space-between; font-size: 9px;">
+                            <span>ID #${idx+1}</span>
+                            <span style="color: var(--success); font-weight: bold;">${marcados}/${c.length}</span>
                         </div>
-                    `;
+                        <div class="grid-cartela">${c.map(num => `<div class="numero ${bolasSorteadas.includes(num) ? 'marcado' : ''}">${num}</div>`).join('')}</div>
+                    </div>`;
                 }).join('');
             }
         } catch(e) {}
@@ -237,12 +219,12 @@
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ usuarioId: USER_ID })
         });
-        const data = await res.json();
-        if(res.ok) { alert(data.msg); atualizarInterface(); } else alert("Erro saldo!");
+        if(res.ok) { alert("Cartela comprada!"); atualizarInterface(); } else alert("Saldo insuficiente!");
     }
 
     async function gerarPix() {
-        const valor = prompt("Valor (Mínimo 10):", "10");
+        const valor = prompt("Valor do depósito (Mínimo 10):", "10");
+        if(!valor || valor < 10) return alert("Valor mínimo R$ 10");
         const res = await fetch(`${API}/gerar-pix`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ userId: USER_ID, valor })
@@ -255,27 +237,16 @@
         }
     }
 
-    // NOVA FUNÇÃO DE SAQUE
     async function enviarPedidoSaque() {
         const valor = document.getElementById('saqueValor').value;
         const chave = document.getElementById('saqueChave').value;
-
-        if(!valor || !chave) return alert("Preencha valor e chave PIX!");
-
         const res = await fetch(`${API}/pedir-saque`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: USER_ID, valor: valor, chavePix: chave })
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: USER_ID, valor, chavePix: chave })
         });
-
         const data = await res.json();
-        if(res.ok) {
-            alert(data.msg);
-            document.getElementById('modalSaque').classList.add('hidden');
-            atualizarInterface();
-        } else {
-            alert(data.erro);
-        }
+        if(res.ok) { alert(data.msg); document.getElementById('modalSaque').classList.add('hidden'); } 
+        else alert(data.erro);
     }
 
     function copiarPix() { navigator.clipboard.writeText(document.getElementById('qrTexto').innerText); alert("Copiado!"); }
@@ -290,9 +261,11 @@
     if(USER_ID) {
         document.getElementById('telaAuth').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
-        setInterval(atualizarInterface, 3000);
+        // ATUALIZAÇÃO RÁPIDA ATIVADA
+        setInterval(atualizarInterface, 1000); 
         atualizarInterface();
     }
 </script>
 </body>
 </html>
+
