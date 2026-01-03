@@ -1,4 +1,3 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -33,24 +32,52 @@ const Saque = mongoose.model('Saque', new mongoose.Schema({
 let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0, ganhadorRodada: null };
 let premioReservadoProxima = 0;
 
-// ROTA PARA GERAR PIX
+// --- ROTA PARA GERAR PIX (AJUSTADA PARA O SALDO CAIR DEPOIS) ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
-    const payment = new Payment(client);
     try {
+        const user = await User.findById(userId);
+        const payment = new Payment(client);
+        
         const result = await payment.create({
             body: {
                 transaction_amount: Number(valor),
                 description: 'Deposito Bingo Real',
                 payment_method_id: 'pix',
-                payer: { email: 'contato@bingoreal.com' }
+                payer: { email: user.email }, // Importante para o saldo automático
+                notification_url: 'https://bingo-backend-89dt.onrender.com/webhook' // Avisa o servidor quando pagar
             }
         });
         res.json({
             qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64,
             qr_code: result.point_of_interaction.transaction_data.qr_code
         });
-    } catch (error) { res.status(500).json({ erro: "Erro ao gerar PIX" }); }
+    } catch (error) { 
+        console.error("Erro ao gerar PIX:", error);
+        res.status(500).json({ erro: "Erro ao gerar PIX" }); 
+    }
+});
+
+// --- ROTA DE WEBHOOK (FAZ O DINHEIRO CAIR NA CONTA DO USUÁRIO) ---
+app.post('/webhook', async (req, res) => {
+    const { action, data } = req.body;
+    if (action === "payment.created" || req.query["data.id"]) {
+        const id = data ? data.id : req.query["data.id"];
+        try {
+            const payment = new Payment(client);
+            const p = await payment.get({ id });
+            if (p.status === 'approved') {
+                const valorAprovado = p.transaction_amount;
+                // Procura o usuário pelo email enviado no pagamento e soma o saldo
+                await User.findOneAndUpdate(
+                    { email: p.payer.email }, 
+                    { $inc: { saldo: valorAprovado } }
+                );
+                console.log(`DEPÓSITO APROVADO: R$ ${valorAprovado} para ${p.payer.email}`);
+            }
+        } catch (e) { console.error("Erro Webhook:", e); }
+    }
+    res.sendStatus(200);
 });
 
 // LOOP DO CRONÔMETRO
@@ -72,14 +99,11 @@ function iniciarSorteio() {
             for (let u of usuarios) {
                 for (let cartela of u.cartelas) {
                     if (cartela.every(n => jogo.bolas.includes(n))) {
-                        // --- CORREÇÃO AQUI: PAGAMENTO IMEDIATO NO BANCO ---
                         const valorPremio = jogo.premioAcumulado;
                         await User.findByIdAndUpdate(u._id, { $inc: { saldo: valorPremio } });
-                        
                         jogo.ganhadorRodada = u.name;
                         jogo.fase = 'finalizado';
                         clearInterval(intervalo);
-                        console.log(`BINGO! ${u.name} ganhou R$ ${valorPremio}`);
                         finalizarRodada();
                         return;
                     }
@@ -95,28 +119,16 @@ function iniciarSorteio() {
 
 async function finalizarRodada() {
     setTimeout(async () => {
-        // Limpa cartelas velhas
         await User.updateMany({}, { cartelas: [] });
-        
-        // Transfere cartelas da reserva para a principal
         const emEspera = await User.find({ "cartelasProximaRodada.0": { $exists: true } });
         for (let userEsp of emEspera) {
             await User.findByIdAndUpdate(userEsp._id, {
                 $set: { cartelas: userEsp.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
-        
-        // Inicia novo prêmio com o que foi reservado
         let valorParaNovaRodada = premioReservadoProxima;
         premioReservadoProxima = 0;
-        
-        jogo = { 
-            bolas: [], 
-            fase: 'aguardando', 
-            tempoRestante: 300, 
-            premioAcumulado: valorParaNovaRodada, 
-            ganhadorRodada: null 
-        };
+        jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: valorParaNovaRodada, ganhadorRodada: null };
     }, 15000);
 }
 
@@ -128,17 +140,16 @@ app.post('/comprar-com-saldo', async (req, res) => {
         let c = [];
         while(c.length < 10) { let n = Math.floor(Math.random() * 50) + 1; if(!c.includes(n)) c.push(n); }
         const novaCartela = c.sort((a,b)=>a-b);
-        
         if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') {
             user.cartelasProximaRodada.push(novaCartela);
             premioReservadoProxima += 1.5;
             await user.save();
-            res.json({ msg: "Sorteio em andamento! Sua cartela valerá para a PRÓXIMA rodada." });
+            res.json({ msg: "Sorteio em andamento! Guardado para a PRÓXIMA." });
         } else {
             user.cartelas.push(novaCartela);
             jogo.premioAcumulado += 1.5;
             await user.save();
-            res.json({ msg: "Cartela comprada para esta rodada!" });
+            res.json({ msg: "Cartela comprada!" });
         }
     } else res.status(400).send("Saldo insuficiente");
 });
@@ -167,3 +178,4 @@ app.post('/register', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Bingo rodando!`));
+
