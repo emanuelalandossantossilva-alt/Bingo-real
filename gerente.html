@@ -1,81 +1,120 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Painel de Administração - Bingo</title>
-    <style>
-        body { font-family: sans-serif; background: #020617; color: white; padding: 20px; text-align: center; }
-        .box-login { background: #1e293b; padding: 30px; border-radius: 15px; display: inline-block; border: 1px solid #facc15; }
-        .card { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; text-align: left;}
-        input { padding: 10px; border-radius: 5px; border: 1px solid #334155; background: #0f172a; color: white; margin: 10px 0; }
-        button { padding: 10px 20px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; background: #22c55e; color: white; }
-        #conteudoGerente { display: none; }
-    </style>
-</head>
-<body>
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const app = express();
 
-    <div id="telaLogin">
-        <div class="box-login">
-            <h2 style="color:#facc15;">Acesso Restrito</h2>
-            <input type="password" id="senhaInput" placeholder="Senha Mestra">
-            <br>
-            <button onclick="verificarSenha()">ENTRAR</button>
-        </div>
-    </div>
+app.use(express.json());
+app.use(cors());
 
-    <div id="conteudoGerente">
-        <h1 style="color:#facc15;">Gerenciador de Créditos</h1>
-        <button style="background:#3b82f6; width: 100%; margin-bottom: 20px;" onclick="carregarJogadores()">🔄 ATUALIZAR LISTA</button>
-        <div id="lista">Carregando jogadores...</div>
-    </div>
+// Conexão com o Banco de Dados
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB Conectado"))
+  .catch(err => console.log("Erro MongoDB:", err));
 
-    <script>
-        // Use exatamente este link que funcionou no seu Cron-job
-        const API = "https://bingo-backend-89dt.onrender.com"; 
-        const SENHA_MESTRA = "1234";
+// Modelo de Usuário
+const User = mongoose.model('User', new mongoose.Schema({
+    name: String,
+    email: { type: String, unique: true },
+    senha: { type: String, required: true },
+    saldo: { type: Number, default: 0 }
+}));
 
-        function verificarSenha() {
-            if (document.getElementById('senhaInput').value === SENHA_MESTRA) {
-                document.getElementById('telaLogin').style.display = 'none';
-                document.getElementById('conteudoGerente').style.display = 'block';
-                carregarJogadores();
-            } else { alert("Senha Incorreta!"); }
+let jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
+
+// --- LÓGICA DO CRONÔMETRO E SORTEIO AUTOMÁTICO ---
+setInterval(() => {
+    if (jogo.tempoRestante > 0) {
+        jogo.tempoRestante--;
+    } else if (jogo.fase === 'aguardando') {
+        jogo.fase = 'sorteio';
+        iniciarSorteio();
+    }
+}, 1000);
+
+function iniciarSorteio() {
+    let intervalo = setInterval(() => {
+        if (jogo.bolas.length < 75) {
+            let num;
+            do { num = Math.floor(Math.random() * 75) + 1; } 
+            while (jogo.bolas.includes(num));
+            jogo.bolas.push(num);
+        } else {
+            clearInterval(intervalo);
+            setTimeout(reiniciarJogo, 30000); // Reinicia após 30 segundos
         }
+    }, 4000); 
+}
 
-        async function carregarJogadores() {
-            try {
-                const res = await fetch(`${API}/users`);
-                if (!res.ok) throw new Error();
-                const dados = await res.json();
-                const lista = document.getElementById('lista');
-                lista.innerHTML = "";
-                dados.forEach(u => {
-                    lista.innerHTML += `
-                        <div class="card">
-                            <div><b>${u.name.toUpperCase()}</b><br><span>R$ ${u.saldo.toFixed(2)}</span></div>
-                            <div>
-                                <input type="number" id="val-${u._id}" style="width:60px" placeholder="R$">
-                                <button onclick="addSaldo('${u._id}')">ADD</button>
-                            </div>
-                        </div>`;
-                });
-            } catch (e) { 
-                alert("O servidor ainda está ligando. Aguarde 30 segundos e tente o botão azul novamente."); 
-            }
-        }
+function reiniciarJogo() {
+    jogo = { bolas: [], fase: 'aguardando', tempoRestante: 300, premioAcumulado: 0 };
+}
 
-        async function addSaldo(id) {
-            const valor = document.getElementById(`val-${id}`).value;
-            if(!valor) return;
-            try {
-                const res = await fetch(`${API}/add-saldo`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ userId: id, amount: parseFloat(valor) })
-                });
-                if(res.ok) { alert("Saldo atualizado!"); carregarJogadores(); }
-            } catch (err) { alert("Erro ao salvar saldo."); }
-        }
-    </script>
-</body>
-</html>
+// --- ROTAS DO GERENTE (PARA O SEU GERENTE.HTML FUNCIONAR) ---
+
+// Rota para listar todos os usuários no painel
+app.get('/users', async (req, res) => {
+    try {
+        const users = await User.find();
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json(users);
+    } catch (e) { res.status(500).send(); }
+});
+
+// Rota para o botão "ADD" do gerente colocar saldo
+app.post('/add-saldo', async (req, res) => {
+    try {
+        const { userId, amount } = req.body;
+        const user = await User.findById(userId);
+        if (user) {
+            user.saldo += amount;
+            await user.save();
+            res.set('Access-Control-Allow-Origin', '*');
+            res.json({ message: "Saldo atualizado" });
+        } else { res.status(404).json({ message: "Usuário não encontrado" }); }
+    } catch (e) { res.status(500).send(); }
+});
+
+// --- ROTAS DO JOGADOR ---
+
+app.post('/comprar-com-saldo', async (req, res) => {
+    try {
+        const { usuarioId, quantidade } = req.body;
+        const user = await User.findById(usuarioId);
+        if (user.saldo >= (quantidade * 2)) {
+            user.saldo -= (quantidade * 2);
+            await user.save();
+            jogo.premioAcumulado += (quantidade * 1);
+            res.json({ message: "Sucesso" });
+        } else { res.status(400).json({ message: "Saldo insuficiente" }); }
+    } catch (e) { res.status(500).json({ message: "Erro" }); }
+});
+
+app.get('/game-status', (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.json(jogo);
+});
+
+app.get('/user-data/:id', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json(user);
+    } catch (e) { res.status(404).send(); }
+});
+
+app.post('/login', async (req, res) => {
+    const user = await User.findOne({ email: req.body.email, senha: req.body.senha });
+    if(user) res.json({ user });
+    else res.status(401).json({ message: "Erro no login" });
+});
+
+app.post('/register', async (req, res) => {
+    try {
+        const newUser = new User(req.body);
+        await newUser.save();
+        res.json({ message: "Criado" });
+    } catch (e) { res.status(400).json({ message: "Erro ao criar" }); }
+});
+
+app.listen(process.env.PORT || 3000);
+            
