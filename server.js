@@ -17,10 +17,13 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log("Conectado ao MongoDB!"))
     .catch(err => console.error("Erro Mongo:", err));
 
-// MODELOS
+// MODELOS (Adicionado unique: true no name para garantir integridade)
 const User = mongoose.model('User', new mongoose.Schema({
-    name: String, email: { type: String, unique: true }, senha: { type: String },
-    saldo: { type: Number, default: 0 }, cartelas: { type: Array, default: [] },
+    name: { type: String, unique: true }, 
+    email: { type: String, unique: true }, 
+    senha: { type: String },
+    saldo: { type: Number, default: 0 }, 
+    cartelas: { type: Array, default: [] },
     cartelasProximaRodada: { type: Array, default: [] }
 }));
 
@@ -29,17 +32,22 @@ const Saque = mongoose.model('Saque', new mongoose.Schema({
     status: { type: String, default: 'pendente' }, data: { type: Date, default: Date.now }
 }));
 
-// VARIÁVEL DO JOGO
 let jogo = { bolas: [], fase: 'aguardando', tempoSegundos: 300, premioAcumulado: 0, ganhadorRodada: null };
 let premioReservadoProxima = 0;
 
-// --- NOVO: ROTA PARA ATUALIZAR NOME (PERFIL) ---
+// --- ROTA PARA ATUALIZAR NOME COM VALIDAÇÃO DE DUPLICIDADE ---
 app.post('/atualizar-perfil', async (req, res) => {
     const { userId, nome } = req.body;
     try {
         if (!userId || !nome) return res.status(400).json({ erro: "Dados incompletos" });
+
+        // VERIFICAÇÃO: Existe outro usuário com este mesmo nome?
+        const nomeExiste = await User.findOne({ name: nome, _id: { $ne: userId } });
         
-        // Atualiza o campo 'name' no MongoDB
+        if (nomeExiste) {
+            return res.status(400).json({ erro: "Este nome já está em uso por outro jogador." });
+        }
+
         const usuarioAtualizado = await User.findByIdAndUpdate(
             userId, 
             { name: nome }, 
@@ -53,7 +61,7 @@ app.post('/atualizar-perfil', async (req, res) => {
         }
     } catch (error) {
         console.error("Erro ao atualizar perfil:", error);
-        res.status(500).json({ erro: "Erro interno no servidor" });
+        res.status(500).json({ erro: "Erro ao processar alteração" });
     }
 });
 
@@ -80,7 +88,7 @@ app.post('/gerar-pix', async (req, res) => {
     } catch (error) { res.status(500).json({ erro: "Erro PIX" }); }
 });
 
-// --- WEBHOOK (SALDO AUTOMÁTICO) ---
+// --- WEBHOOK ---
 app.post('/webhook', async (req, res) => {
     const { action, data } = req.body;
     const id = (data && data.id) || req.query["data.id"];
@@ -105,19 +113,15 @@ app.post('/comprar-com-saldo', async (req, res) => {
         const { usuarioId } = req.body;
         const qtd = req.body.quantidade || 1; 
         const custoTotal = qtd * 2;
-
         const user = await User.findById(usuarioId);
-        
         if (user && user.saldo >= custoTotal) {
             user.saldo -= custoTotal; 
-            
             for (let i = 0; i < qtd; i++) {
                 let c = [];
                 while(c.length < 10) { 
                     let n = Math.floor(Math.random() * 50) + 1; 
                     if(!c.includes(n)) c.push(n); 
                 }
-                
                 if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') { 
                     user.cartelasProximaRodada.push(c); 
                     premioReservadoProxima += 1.5; 
@@ -126,26 +130,19 @@ app.post('/comprar-com-saldo', async (req, res) => {
                     jogo.premioAcumulado += 1.5; 
                 }
             }
-            
             await user.save();
             res.json({ msg: "OK", saldoRestante: user.saldo });
         } else {
             res.status(400).send("Saldo insuficiente");
         }
-    } catch (error) {
-        res.status(500).send("Erro na compra");
-    }
+    } catch (error) { res.status(500).send("Erro na compra"); }
 });
 
-// CRONÔMETRO
+// CRONÔMETRO E LÓGICA DE SORTEIO
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
-        if (jogo.tempoSegundos > 0) {
-            jogo.tempoSegundos--;
-        } else { 
-            jogo.fase = 'sorteio'; 
-            iniciarSorteio(); 
-        }
+        if (jogo.tempoSegundos > 0) { jogo.tempoSegundos--; } 
+        else { jogo.fase = 'sorteio'; iniciarSorteio(); }
     }
 }, 1000);
 
@@ -194,8 +191,17 @@ app.post('/login', async (req, res) => {
     if(u) res.json({ user: u }); else res.status(401).send();
 });
 app.post('/register', async (req, res) => {
-    try { const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password }); await u.save(); res.json({ok:true}); } catch(e) { res.status(400).send(); }
+    try { 
+        // Verifica nome no registro também
+        const nomeExiste = await User.findOne({ name: req.body.name });
+        if(nomeExiste) return res.status(400).send("Nome já existe");
+        
+        const u = new User({ name: req.body.name, email: req.body.email, senha: req.body.password }); 
+        await u.save(); 
+        res.json({ok:true}); 
+    } catch(e) { res.status(400).send(); }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
+                
