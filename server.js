@@ -1,3 +1,4 @@
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -14,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // --- RESTO DO SEU CÓDIGO DE ROTAS AQUI ---
-// (Mantenha as rotas de login, registro e jogo abaixo)
+// (Mantenha as suas rotas de login e jogo abaixo)
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
