@@ -19,7 +19,8 @@
         .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; }
         .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; margin: 0 auto; }
         input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; }
-        button { cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
+        button { cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.3s; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
         #listaCartelas { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 15px 5px; height: calc(100vh - 380px); overflow-y: auto; }
         .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; }
         .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
@@ -38,13 +39,14 @@
         <input type="password" id="senhaLogin" placeholder="Sua senha">
         <button id="btnEntrar" onclick="fazerLogin()" style="background:var(--success); width:100%; padding:12px; color:white; margin-bottom:10px;">ENTRAR</button>
         <button onclick="fazerCadastro()" style="background:#334155; width:100%; padding:8px; color:white; font-size:12px;">CRIAR CONTA GRATIS</button>
-        <p id="msgStatus" style="font-size: 10px; color: #94a3b8; margin-top: 10px;"></p>
+        <p id="msgStatus" style="font-size: 10px; color: #94a3b8; margin-top: 10px; min-height: 12px;"></p>
     </div>
 </div>
 
 <div id="telaJogo" class="hidden">
     <div class="header">
-        <div style="width:20px;"></div> <div style="font-weight:bold; color:var(--primary);">BINGO REAL</div>
+        <div style="width:20px;"></div> 
+        <div style="font-weight:bold; color:var(--primary);">BINGO REAL</div>
         <button style="background:var(--success); color:white; padding:6px 10px; border-radius:4px;">PIX</button>
     </div>
 
@@ -60,7 +62,7 @@
     </div>
 
     <div style="padding: 10px;">
-        <button onclick="comprarCartelas()" style="background:#2563eb; color:white; width:100%; padding:12px;">COMPRAR CARTELA</button>
+        <button id="btnComprar" onclick="comprarCartelas()" style="background:#2563eb; color:white; width:100%; padding:12px;">COMPRAR CARTELA</button>
     </div>
 
     <div id="listaCartelas"></div>
@@ -77,18 +79,18 @@
         setTimeout(() => { t.style.display = 'none'; }, 3000);
     }
 
-    // LOGIN MELHORADO
+    // LOGIN COM TRATAMENTO DE ERRO DE CONEXÃO
     async function fazerLogin() {
         const email = document.getElementById('emailLogin').value;
         const senha = document.getElementById('senhaLogin').value;
         const msg = document.getElementById('msgStatus');
         const btn = document.getElementById('btnEntrar');
         
-        if(!email || !senha) return alert("Preencha tudo!");
+        if(!email || !senha) return alert("Preencha e-mail e senha!");
         
         btn.disabled = true;
         btn.innerText = "CONECTANDO...";
-        msg.innerText = "Acordando servidor... aguarde 30 segundos.";
+        msg.innerText = "Acordando servidor... pode levar 30 segundos.";
         
         try {
             const res = await fetch(`${API}/login`, {
@@ -96,6 +98,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({email, senha})
             });
+
             const data = await res.json();
             
             if(res.ok && data._id) {
@@ -103,10 +106,10 @@
                 USER_ID = data._id;
                 iniciarJogo();
             } else {
-                alert("E-mail ou senha incorretos.");
+                alert(data.message || "Dados inválidos ou erro no servidor.");
             }
         } catch(e) {
-            alert("O servidor está iniciando. Tente novamente agora.");
+            alert("O servidor ainda está ligando ou está offline. Tente novamente em instantes.");
         } finally {
             btn.disabled = false;
             btn.innerText = "ENTRAR";
@@ -114,13 +117,18 @@
         }
     }
 
-    // LOGOUT DEFINITIVO
+    // SAIR DA CONTA (CORRIGIDO)
     function logout() {
-        if(confirm("Deseja sair da sua conta?")) {
-            localStorage.clear();
+        if(confirm("Deseja realmente sair?")) {
+            localStorage.removeItem('userId');
             USER_ID = null;
             if(loopUpdate) clearInterval(loopUpdate);
-            location.reload(); // Recarrega para voltar à tela de login limpa
+            
+            // Limpa a tela antes de recarregar
+            document.getElementById('telaJogo').classList.add('hidden');
+            document.getElementById('telaAuth').classList.remove('hidden');
+            
+            location.reload(); 
         }
     }
 
@@ -139,12 +147,15 @@
     async function atualizarInterface() {
         if(!USER_ID) return;
         try {
-            const resStatus = await fetch(`${API}/game-status`);
+            const [resStatus, resUser] = await Promise.all([
+                fetch(`${API}/game-status`),
+                fetch(`${API}/user-data/${USER_ID}`)
+            ]);
+
             const jogo = await resStatus.json();
-            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
             const user = await resUser.json();
 
-            document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
+            if(user) document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
             
             const bolas = jogo.bolas || [];
             if(bolas.length > 0) document.getElementById('bolaGrande').innerText = bolas[bolas.length-1];
@@ -166,26 +177,52 @@
                 const s = jogo.tempoSegundos % 60;
                 document.getElementById('timerTxt').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
             }
-        } catch(e) {}
+        } catch(e) {
+            console.log("Erro ao atualizar dados...");
+        }
     }
 
     async function fazerCadastro() {
         const email = document.getElementById('emailLogin').value;
         const senha = document.getElementById('senhaLogin').value;
         const name = prompt("Seu nome de jogador:");
-        if(!name || !email || !senha) return alert("Preencha os campos!");
+        if(!name || !email || !senha) return alert("Preencha os campos de login antes de cadastrar!");
 
         try {
-            await fetch(`${API}/register`, {
+            const res = await fetch(`${API}/register`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({name, email, senha})
             });
-            alert("Conta criada! Clique em ENTRAR.");
-        } catch(e) { alert("Erro ao cadastrar."); }
+            if(res.ok) alert("Conta criada com sucesso! Agora clique em ENTRAR.");
+            else alert("Erro ao cadastrar. Tente outro e-mail.");
+        } catch(e) { alert("Servidor offline para cadastro."); }
     }
 
+    async function comprarCartelas() {
+        if(!USER_ID) return;
+        const btn = document.getElementById('btnComprar');
+        btn.disabled = true;
+        try {
+            const res = await fetch(`${API}/comprar-com-saldo`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ usuarioId: USER_ID, quantidade: 1 })
+            });
+            const data = await res.json();
+            if(res.ok) {
+                showToast("Cartela comprada!");
+                atualizarInterface();
+            } else {
+                alert(data.message || "Saldo insuficiente!");
+            }
+        } catch(e) { alert("Erro na compra."); }
+        finally { btn.disabled = false; }
+    }
+
+    // Tenta entrar automático se já tiver logado
     if(USER_ID) iniciarJogo();
 </script>
 </body>
 </html>
+
