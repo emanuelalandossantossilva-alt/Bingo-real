@@ -53,6 +53,26 @@ app.post('/admin/add-saldo', async (req, res) => {
     } catch (e) { res.status(500).send("Erro"); }
 });
 
+// NOVA ROTA: ALTERAR SENHA (ADICIONADA)
+app.post('/admin/alterar-senha', async (req, res) => {
+    const { userId, novaSenha } = req.body;
+    try {
+        const user = await User.findByIdAndUpdate(userId, { senha: novaSenha }, { new: true });
+        if(user) res.json({ msg: "Senha alterada com sucesso!" });
+        else res.status(404).send("Usuário não encontrado");
+    } catch (e) { res.status(500).send("Erro"); }
+});
+
+// NOVA ROTA: EXCLUIR USUÁRIO (ADICIONADA)
+app.delete('/admin/excluir-usuario/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const deletado = await User.findByIdAndDelete(userId);
+        if(deletado) res.json({ msg: "Conta excluída permanentemente!" });
+        else res.status(404).send("Usuário não encontrado");
+    } catch (e) { res.status(500).send("Erro ao excluir"); }
+});
+
 app.post('/admin/reset-jogo', (req, res) => {
     jogo = { bolas: [], fase: 'aguardando', tempoSegundos: 300, premioAcumulado: 0, ganhadorRodada: null };
     premioReservadoProxima = 0;
@@ -198,4 +218,4 @@ app.post('/register', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Porta ${PORT}`));
-            
+
