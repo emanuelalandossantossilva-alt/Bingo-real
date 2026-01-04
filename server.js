@@ -29,9 +29,33 @@ const Saque = mongoose.model('Saque', new mongoose.Schema({
     status: { type: String, default: 'pendente' }, data: { type: Date, default: Date.now }
 }));
 
-// AJUSTE: Mudei para tempoSegundos para alinhar com o HTML
+// VARIÁVEL DO JOGO
 let jogo = { bolas: [], fase: 'aguardando', tempoSegundos: 300, premioAcumulado: 0, ganhadorRodada: null };
 let premioReservadoProxima = 0;
+
+// --- NOVO: ROTA PARA ATUALIZAR NOME (PERFIL) ---
+app.post('/atualizar-perfil', async (req, res) => {
+    const { userId, nome } = req.body;
+    try {
+        if (!userId || !nome) return res.status(400).json({ erro: "Dados incompletos" });
+        
+        // Atualiza o campo 'name' no MongoDB
+        const usuarioAtualizado = await User.findByIdAndUpdate(
+            userId, 
+            { name: nome }, 
+            { new: true }
+        );
+
+        if (usuarioAtualizado) {
+            res.json({ msg: "Nome atualizado com sucesso!", user: usuarioAtualizado });
+        } else {
+            res.status(404).json({ erro: "Usuário não encontrado" });
+        }
+    } catch (error) {
+        console.error("Erro ao atualizar perfil:", error);
+        res.status(500).json({ erro: "Erro interno no servidor" });
+    }
+});
 
 // --- GERAÇÃO DE PIX ---
 app.post('/gerar-pix', async (req, res) => {
@@ -113,7 +137,7 @@ app.post('/comprar-com-saldo', async (req, res) => {
     }
 });
 
-// CRONÔMETRO (CORRIGIDO)
+// CRONÔMETRO
 setInterval(() => {
     if (jogo.fase === 'aguardando') {
         if (jogo.tempoSegundos > 0) {
@@ -157,7 +181,6 @@ function finalizarRodada() {
                 $set: { cartelas: userEsp.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
-        // Ajuste no reset para manter o nome da variável
         jogo = { bolas: [], fase: 'aguardando', tempoSegundos: 300, premioAcumulado: premioReservadoProxima, ganhadorRodada: null };
         premioReservadoProxima = 0;
     }, 15000);
@@ -176,4 +199,3 @@ app.post('/register', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
-            
