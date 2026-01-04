@@ -48,7 +48,8 @@
         .valor-revelado { color: #fff; font-size: 24px; font-weight: 900; }
 
         #timerTxt { font-size: 18px !important; margin-bottom: 5px; }
-        #playerSaldo { font-size: 14px !important; margin: 5px 0 !important; }
+        #playerSaldo { font-size: 14px !important; margin: 5px 0 0 0 !important; }
+        #userIdDisplay { font-size: 10px; color: #64748b; margin-bottom: 10px; cursor: pointer; text-decoration: underline; }
 
         /* CARTELAS */
         .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; margin-bottom: 8px; }
@@ -63,7 +64,7 @@
 <body>
 
 <div id="menuLateral" class="menu-suspenso hidden">
-    <div class="menu-item" onclick="toggleMenu()">👤 Perfil</div>
+    <div class="menu-item" id="perfilNome" style="font-weight: bold; border-bottom: 2px solid #334155; color: var(--primary);">👤 Carregando...</div>
     <div class="menu-item" onclick="logout()" style="color:#ef4444; font-weight:bold;">🚪 Sair da Conta</div>
 </div>
 
@@ -125,7 +126,9 @@
             <div class="status-acumulando">ACUMULANDO...</div>
         </div>
         <div id="timerTxt" style="color:var(--primary); font-weight:bold;">05:00</div>
+        
         <div id="playerSaldo" style="color:var(--success); font-weight:bold;">Saldo: R$ 0,00</div>
+        <div id="userIdDisplay" onclick="copiarID()">ID: carregando...</div>
 
         <div id="bolaGrande" class="bola-sorteada-master">--</div>
         <div class="painel-numeros" id="gradeNumeros"></div>
@@ -191,7 +194,10 @@
             const resUser = await fetch(`${API}/user-data/${USER_ID}`);
             const user = await resUser.json();
 
+            // ATUALIZA NOME, SALDO E ID
+            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
             document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
+            document.getElementById('userIdDisplay').innerText = `ID: ${USER_ID}`;
 
             const painel = document.getElementById('painelPremio');
             if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') {
@@ -225,6 +231,12 @@
                 </div>
             `).join('');
         } catch(e) {}
+    }
+
+    function copiarID() {
+        if (USER_ID) {
+            navigator.clipboard.writeText(USER_ID).then(() => alert("ID copiado!"));
+        }
     }
 
     setInterval(() => {
@@ -261,6 +273,7 @@
         document.getElementById('telaAuth').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
         iniciarGrade();
+        atualizarInterface();
         setInterval(atualizarInterface, 3000);
     }
 </script>
