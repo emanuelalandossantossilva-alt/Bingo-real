@@ -9,21 +9,19 @@
         html, body { overflow: hidden; height: 100%; position: fixed; width: 100%; font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; }
         .hidden { display: none !important; }
 
-        /* TELA DE LOGIN */
+        /* TELAS INICIAIS */
         #telaAuth { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         .auth-card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid var(--primary); width: 100%; max-width: 320px; }
 
-        /* HEADER E STATUS */
+        /* STATUS E HEADER */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; }
         .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; }
         .status-item { display: flex; flex-direction: column; border-right: 1px solid #334155; }
         .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; }
         .status-val { font-size: 12px; font-weight: bold; }
 
-        /* BOLA E JOGO */
+        /* COMPONENTES */
         .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; }
-        .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; margin: 0 auto; }
-        
         input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; }
         button { cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
 
@@ -32,8 +30,8 @@
         .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
         .num-c { font-size: 10px; background: #e2e8f0; padding: 4px 0; }
         .marcado { background: var(--success) !important; color: white !important; }
-        
-        /* MODAL DE CADASTRO */
+
+        /* MODAL */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 6000; }
         .modal-content { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid var(--primary); width: 85%; max-width: 300px; }
     </style>
@@ -46,10 +44,7 @@
         <input type="email" id="emailLogin" placeholder="Seu e-mail">
         <input type="password" id="senhaLogin" placeholder="Sua senha">
         <button id="btnEntrar" onclick="fazerLogin()" style="background:var(--success); width:100%; padding:12px; color:white; margin-bottom:10px;">ENTRAR</button>
-        
-        <button onclick="abrirModalCadastro()" style="background:#334155; width:100%; padding:10px; color:white; font-size:12px; border: 1px solid #475569;">CRIAR CONTA GRÁTIS</button>
-        
-        <p id="msgStatus" style="font-size: 10px; color: #94a3b8; margin-top: 10px;"></p>
+        <button onclick="abrirModalCadastro()" style="background:#334155; width:100%; padding:10px; color:white; font-size:12px;">CRIAR CONTA GRÁTIS</button>
     </div>
 </div>
 
@@ -59,8 +54,8 @@
         <input type="text" id="regNome" placeholder="Seu Nome">
         <input type="email" id="regEmail" placeholder="Seu E-mail">
         <input type="password" id="regSenha" placeholder="Crie uma Senha">
-        <button onclick="fazerCadastro()" style="background:var(--success); color:white; width:100%; padding:12px; margin-bottom:10px;">CADASTRAR AGORA</button>
-        <button onclick="fecharModalCadastro()" style="background:transparent; color:#94a3b8; width:100%; font-size:12px;">Voltar ao Login</button>
+        <button onclick="fazerCadastro()" style="background:var(--success); color:white; width:100%; padding:12px; margin-bottom:10px;">CADASTRAR</button>
+        <button onclick="fecharModalCadastro()" style="background:transparent; color:#94a3b8; width:100%; font-size:12px;">Voltar</button>
     </div>
 </div>
 
@@ -78,7 +73,7 @@
     </div>
 
     <div class="card">
-        <div id="bolaGrande" class="bola-sorteada-master">--</div>
+        <div id="bolaGrande" style="font-size:40px; font-weight:bold; color:var(--primary);">--</div>
         <div id="gradeNumeros" style="display:grid; grid-template-columns: repeat(10, 1fr); gap:2px; margin-top:10px;"></div>
     </div>
 
@@ -92,52 +87,35 @@
 <script>
     const API = "https://bingo-backend-89dt.onrender.com";
     let USER_ID = localStorage.getItem('userId');
-    let loopUpdate = null;
 
-    // CONTROLE DE MODAL
     function abrirModalCadastro() { document.getElementById('modalCadastro').classList.remove('hidden'); }
     function fecharModalCadastro() { document.getElementById('modalCadastro').classList.add('hidden'); }
 
-    // SAIR DA CONTA
     function logout() {
         if (confirm("Deseja realmente sair?")) {
             localStorage.clear();
-            sessionStorage.clear();
-            USER_ID = null;
-            if(loopUpdate) clearInterval(loopUpdate);
-            window.location.href = window.location.pathname + "?v=" + Date.now();
+            location.reload();
         }
     }
 
-    // CADASTRO
     async function fazerCadastro() {
         const name = document.getElementById('regNome').value;
         const email = document.getElementById('regEmail').value;
         const senha = document.getElementById('regSenha').value;
-
-        if(!name || !email || !senha) return alert("Preencha todos os campos!");
-
         try {
             const res = await fetch(`${API}/register`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ name, email, senha })
             });
-            if(res.ok) {
-                alert("Conta criada com sucesso! Faça login.");
-                fecharModalCadastro();
-            } else {
-                alert("Erro ao cadastrar. Talvez o e-mail já exista.");
-            }
-        } catch(e) { alert("Erro de conexão."); }
+            if(res.ok) { alert("Sucesso! Faça login."); fecharModalCadastro(); }
+            else { alert("E-mail já cadastrado."); }
+        } catch(e) { alert("Erro ao conectar."); }
     }
 
-    // LOGIN
     async function fazerLogin() {
         const email = document.getElementById('emailLogin').value;
         const senha = document.getElementById('senhaLogin').value;
-        if(!email || !senha) return alert("Preencha e-mail e senha!");
-
         try {
             const res = await fetch(`${API}/login`, {
                 method: 'POST',
@@ -147,24 +125,9 @@
             const data = await res.json();
             if(res.ok && data._id) {
                 localStorage.setItem('userId', data._id);
-                USER_ID = data._id;
                 location.reload();
-            } else {
-                alert("E-mail ou senha incorretos.");
-            }
-        } catch(e) { alert("Servidor offline. Tente em 30 segundos."); }
-    }
-
-    function iniciarJogo() {
-        document.getElementById('telaAuth').classList.add('hidden');
-        document.getElementById('telaJogo').classList.remove('hidden');
-        
-        const grade = document.getElementById('gradeNumeros');
-        grade.innerHTML = '';
-        for (let i = 1; i <= 50; i++) grade.innerHTML += `<div id="num-${i}" style="font-size:10px; background:#1e293b; padding:2px; border-radius:2px;">${i}</div>`;
-        
-        atualizarInterface();
-        loopUpdate = setInterval(atualizarInterface, 3000);
+            } else { alert("Dados inválidos."); }
+        } catch(e) { alert("Servidor carregando... tente em instantes."); }
     }
 
     async function atualizarInterface() {
@@ -181,12 +144,6 @@
             const bolas = jogo.bolas || [];
             if(bolas.length > 0) document.getElementById('bolaGrande').innerText = bolas[bolas.length-1];
 
-            document.querySelectorAll('[id^="num-"]').forEach(el => el.style.background = "#1e293b");
-            bolas.forEach(b => {
-                const el = document.getElementById(`num-${b}`);
-                if(el) el.style.background = "#22c55e";
-            });
-
             document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => `
                 <div class="cartela">
                     <div class="grid-cartela">${c.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
@@ -195,8 +152,14 @@
         } catch(e) {}
     }
 
-    // VERIFICA SE JÁ ESTÁ LOGADO AO ABRIR
-    if (USER_ID) { iniciarJogo(); } else { document.getElementById('telaAuth').classList.remove('hidden'); }
+    if (USER_ID) {
+        document.getElementById('telaJogo').classList.remove('hidden');
+        setInterval(atualizarInterface, 3000);
+        atualizarInterface();
+    } else {
+        document.getElementById('telaAuth').classList.remove('hidden');
+    }
 </script>
 </body>
 </html>
+
