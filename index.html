@@ -9,32 +9,26 @@
         body { font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; overflow-x: hidden; }
         .hidden { display: none !important; }
 
-        /* HEADER COMPACTO */
+        /* HEADER */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); position: sticky; top: 0; z-index: 100; height: 50px; box-sizing: border-box; }
         .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
         .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
-        .menu-suspenso { position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; text-align: left; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 2000; }
-        .menu-item { padding: 12px; border-bottom: 1px solid #334155; color: white; cursor: pointer; font-size: 13px; }
 
-        /* COMPRA DE CARTELAS REDUZIDA */
+        /* BARRA DE STATUS */
+        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; }
+        .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; }
+        .status-item:last-child { border-right: none; }
+        .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+        .status-val { font-size: 12px; font-weight: bold; }
+
+        /* JOGO */
         .container-compra-topo { background: #0f172a; padding: 6px 12px; border-bottom: 1px solid #334155; display: flex; gap: 6px; align-items: center; justify-content: center; }
-        .input-compra { width: 50px !important; text-align: center; margin: 0 !important; padding: 6px !important; font-size: 14px; }
+        .input-compra { width: 50px !important; text-align: center; margin: 0 !important; padding: 6px !important; color: white; background: #020617; border: 1px solid #334155; border-radius: 4px; font-size: 14px; }
         .btn-compra { flex: 1; max-width: 180px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; padding: 8px; font-size: 13px; }
+        .btn-copy-link { background: #334155; color: var(--primary); border: 1px solid var(--primary); padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 90%; max-width: 340px; margin: 10px auto; display: block; font-size: 11px; }
 
-        /* MODAIS COMPACTOS */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
-        .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
-        .btn-valor { padding: 8px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; font-size: 12px; }
-
-        /* SORTEIO COMPACTO */
         .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 10px auto; max-width: 360px; box-sizing: border-box; }
-        .bola-sorteada-master {
-            width: 75px; height: 75px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 32px; font-weight: 900; color: #000; margin: 10px auto;
-            box-shadow: 0 0 15px rgba(250, 204, 21, 0.4); border: 2px solid #78350f;
-        }
-        
+        .bola-sorteada-master { width: 75px; height: 75px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: #000; margin: 10px auto; border: 2px solid #78350f; transition: all 0.3s; }
         .girando { animation: girarBola 0.15s infinite linear; }
         @keyframes girarBola { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -42,14 +36,11 @@
         .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
         .num-check.ativo { background: var(--success); color: white; }
 
-        /* PREMIO COMPACTO */
+        /* PREMIO */
         .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 10px; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; font-size: 14px; }
+        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         .valor-revelado { color: #fff; font-size: 24px; font-weight: 900; }
-
-        #timerTxt { font-size: 18px !important; margin-bottom: 5px; }
-        #playerSaldo { font-size: 14px !important; margin: 5px 0 0 0 !important; }
-        #userIdDisplay { font-size: 10px; color: #64748b; margin-bottom: 10px; cursor: pointer; text-decoration: underline; }
 
         /* CARTELAS */
         .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; margin-bottom: 8px; }
@@ -57,15 +48,74 @@
         .num-c { font-size: 9px; font-weight: bold; background: #e2e8f0; padding: 2px 0; }
         .marcado { background: var(--success) !important; color: white !important; }
 
+        /* MODAIS E INPUTS */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
+        .btn-valor { padding: 8px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; font-size: 12px; margin: 2px; }
         input { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; font-size: 14px; }
-        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
-<div id="menuLateral" class="menu-suspenso hidden">
-    <div class="menu-item" id="perfilNome" style="font-weight: bold; border-bottom: 2px solid #334155; color: var(--primary);">👤 Carregando...</div>
-    <div class="menu-item" onclick="logout()" style="color:#ef4444; font-weight:bold;">🚪 Sair da Conta</div>
+<div id="telaAuth" class="card" style="margin-top: 50px;">
+    <h3 style="color:var(--primary);">BINGO REAL</h3>
+    <div id="areaLogin">
+        <input type="email" id="loginEmail" placeholder="E-mail">
+        <input type="password" id="loginSenha" placeholder="Senha">
+        <button onclick="fazerLogin()" style="background:#2563eb; color:white; width:100%; padding:12px; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">ENTRAR</button>
+        <p style="font-size:11px; margin-top:10px; cursor:pointer;" onclick="alternarAuth(true)">Não tem conta? <b>Cadastre-se</b></p>
+    </div>
+    <div id="areaCadastro" class="hidden">
+        <input type="text" id="regNome" placeholder="Nome">
+        <input type="email" id="regEmail" placeholder="E-mail">
+        <input type="password" id="regSenha" placeholder="Senha">
+        <button onclick="fazerCadastro()" style="background:var(--success); color:white; width:100%; padding:12px; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">CADASTRAR</button>
+        <p style="font-size:11px; margin-top:10px; cursor:pointer;" onclick="alternarAuth(false)">Já tem conta? <b>Login</b></p>
+    </div>
+</div>
+
+<div id="telaJogo" class="hidden">
+    <div class="header">
+        <button class="menu-btn" onclick="toggleMenu()"><div></div><div></div><div></div></button>
+        <div style="font-weight:bold; color:var(--primary); font-size:14px;">BINGO REAL</div>
+        <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; font-size:12px; cursor:pointer;">PIX</button>
+    </div>
+
+    <div class="status-bar-topo">
+        <div class="status-item">
+            <span class="status-label">Tempo</span>
+            <span id="timerTxt" class="status-val" style="color:var(--primary);">05:00</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Saldo</span>
+            <span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span>
+        </div>
+        <div class="status-item" onclick="copiarID()" style="cursor:pointer;">
+            <span class="status-label">Meu ID</span>
+            <span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span>
+        </div>
+    </div>
+
+    <div id="menuLateral" class="hidden" style="position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; z-index: 2000; text-align: left;">
+        <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">Carregando...</div>
+        <div class="menu-item" onclick="logout()" style="padding:12px; color:#ef4444; font-weight:bold; cursor:pointer;">🚪 Sair da Conta</div>
+    </div>
+
+    <button class="btn-copy-link" onclick="copiarLinkJogo()">🔗 COPIAR LINK DO BINGO</button>
+
+    <div class="container-compra-topo">
+        <input type="number" id="qtdCartelas" value="1" min="1" class="input-compra">
+        <button onclick="comprarCartelas()" class="btn-compra">COMPRAR CARTELA</button>
+    </div>
+
+    <div class="card">
+        <div class="caixa-premio" id="painelPremio">
+            <div class="status-acumulando">ACUMULANDO...</div>
+        </div>
+        <div id="bolaGrande" class="bola-sorteada-master">--</div>
+        <div class="painel-numeros" id="gradeNumeros"></div>
+        <div id="listaCartelas" style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center;"></div>
+    </div>
 </div>
 
 <div id="modalValor" class="modal hidden">
@@ -78,7 +128,7 @@
         </div>
         <input type="number" id="valorInputManual" placeholder="Mín. R$ 10" style="color:black; background:#eee;">
         <button onclick="confirmarGerarPix()" style="background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">GERAR PIX</button>
-        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:8px; border:none; background:none; color:#666; font-size:12px;">Cancelar</button>
+        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:8px; border:none; background:none; color:#666; font-size:12px; cursor:pointer;">Cancelar</button>
     </div>
 </div>
 
@@ -88,52 +138,7 @@
         <img id="qrImagem" style="width:180px; margin:10px 0;" src="">
         <input type="text" id="pixCopiaCola" readonly style="display:none;">
         <button class="btn-compra" style="width:100%" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
-        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red;">Fechar</button>
-    </div>
-</div>
-
-<div id="telaAuth" class="card" style="margin-top: 50px;">
-    <h3 style="color:var(--primary); margin:0 0 15px 0;">BINGO REAL</h3>
-    <div id="areaLogin">
-        <input type="email" id="loginEmail" placeholder="E-mail">
-        <input type="password" id="loginSenha" placeholder="Senha">
-        <button onclick="fazerLogin()" style="background:#2563eb; color:white; width:100%; padding:12px; border:none; border-radius:6px; font-weight:bold;">ENTRAR</button>
-        <p style="font-size:11px; margin-top:10px; cursor:pointer;" onclick="alternarAuth(true)">Não tem conta? <b>Cadastre-se</b></p>
-    </div>
-    <div id="areaCadastro" class="hidden">
-        <input type="text" id="regNome" placeholder="Nome">
-        <input type="email" id="regEmail" placeholder="E-mail">
-        <input type="password" id="regSenha" placeholder="Senha">
-        <button onclick="fazerCadastro()" style="background:var(--success); color:white; width:100%; padding:12px; border:none; border-radius:6px; font-weight:bold;">CADASTRAR</button>
-        <p style="font-size:11px; margin-top:10px; cursor:pointer;" onclick="alternarAuth(false)">Login</p>
-    </div>
-</div>
-
-<div id="telaJogo" class="hidden">
-    <div class="header">
-        <button class="menu-btn" onclick="toggleMenu()"><div></div><div></div><div></div></button>
-        <div style="font-weight:bold; color:var(--primary); font-size:14px;">BINGO REAL</div>
-        <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; font-size:12px;">PIX</button>
-    </div>
-
-    <div class="container-compra-topo">
-        <input type="number" id="qtdCartelas" value="1" min="1" class="input-compra">
-        <button onclick="comprarCartelas()" class="btn-compra">COMPRAR CARTELA</button>
-    </div>
-
-    <div class="card">
-        <div class="caixa-premio" id="painelPremio">
-            <div class="status-acumulando">ACUMULANDO...</div>
-        </div>
-        <div id="timerTxt" style="color:var(--primary); font-weight:bold;">05:00</div>
-        
-        <div id="playerSaldo" style="color:var(--success); font-weight:bold;">Saldo: R$ 0,00</div>
-        <div id="userIdDisplay" onclick="copiarID()">ID: carregando...</div>
-
-        <div id="bolaGrande" class="bola-sorteada-master">--</div>
-        <div class="painel-numeros" id="gradeNumeros"></div>
-
-        <div id="listaCartelas" style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center;"></div>
+        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red; cursor:pointer;">Fechar</button>
     </div>
 </div>
 
@@ -143,21 +148,100 @@
     let segundosRestantes = 0;
     let ultimaBolaSorteada = null;
 
+    // --- FUNÇÕES DE NAVEGAÇÃO E UI ---
+    function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
+    function alternarAuth(showReg) {
+        document.getElementById('areaLogin').classList.toggle('hidden', showReg);
+        document.getElementById('areaCadastro').classList.toggle('hidden', !showReg);
+    }
+    function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
+    function setValor(v) { document.getElementById('valorInputManual').value = v; }
+    function copiarLinkJogo() { navigator.clipboard.writeText(window.location.href).then(() => alert("Link copiado!")); }
+    function copiarID() { if (USER_ID) navigator.clipboard.writeText(USER_ID).then(() => alert("ID copiado!")); }
+    function logout() { localStorage.clear(); location.reload(); }
+
+    // --- FUNÇÕES DE JOGO ---
     function iniciarGrade() {
         const grade = document.getElementById('gradeNumeros');
         grade.innerHTML = '';
         for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check" id="num-${i}">${i}</div>`;
     }
 
-    function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
-    function logout() { localStorage.clear(); location.reload(); }
-    function alternarAuth(showReg) {
-        document.getElementById('areaLogin').classList.toggle('hidden', showReg);
-        document.getElementById('areaCadastro').classList.toggle('hidden', !showReg);
+    async function atualizarInterface() {
+        if(!USER_ID) return;
+        try {
+            const resStatus = await fetch(`${API}/game-status`);
+            const jogo = await resStatus.json();
+            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
+            const user = await resUser.json();
+
+            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
+            document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
+            document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8) + "...";
+
+            // Painel de Prêmio
+            const painel = document.getElementById('painelPremio');
+            if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') {
+                painel.innerHTML = `<div style="font-size:10px; font-weight:bold; color:#fff;">PRÊMIO</div><div class="valor-revelado">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
+            } else {
+                painel.innerHTML = `<div class="status-acumulando">ACUMULANDO...</div>`;
+            }
+
+            if (jogo.tempoSegundos !== undefined) segundosRestantes = jogo.tempoSegundos;
+
+            const bolas = jogo.bolas || [];
+            if (bolas.length > 0) {
+                const novaBola = bolas[bolas.length - 1];
+                if (novaBola !== ultimaBolaSorteada) animarBolaSorteada(novaBola);
+            } else {
+                document.getElementById('bolaGrande').innerText = "--";
+                ultimaBolaSorteada = null;
+            }
+
+            document.querySelectorAll('.num-check').forEach(el => el.classList.remove('ativo'));
+            bolas.forEach(b => document.getElementById(`num-${b}`)?.classList.add('ativo'));
+
+            document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => `
+                <div class="cartela">
+                    <div class="grid-cartela">${c.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
+                </div>
+            `).join('');
+        } catch(e) {}
     }
 
-    function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
-    function setValor(v) { document.getElementById('valorInputManual').value = v; }
+    function animarBolaSorteada(numeroReal) {
+        const bolaEl = document.getElementById('bolaGrande');
+        bolaEl.classList.add('girando');
+        let sorteioVisual = setInterval(() => { bolaEl.innerText = Math.floor(Math.random() * 50) + 1; }, 50);
+        setTimeout(() => {
+            clearInterval(sorteioVisual);
+            bolaEl.classList.remove('girando');
+            bolaEl.innerText = numeroReal;
+            ultimaBolaSorteada = numeroReal;
+        }, 1200);
+    }
+
+    // --- FUNÇÕES DE BACKEND (FETCH) ---
+    async function fazerLogin() {
+        const email = document.getElementById('loginEmail').value;
+        const senha = document.getElementById('loginSenha').value;
+        const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email, senha }) });
+        if(res.ok) { const d = await res.json(); localStorage.setItem('userId', d.user._id); location.reload(); } else { alert("Erro no login"); }
+    }
+
+    async function fazerCadastro() {
+        const name = document.getElementById('regNome').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regSenha').value;
+        const res = await fetch(`${API}/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, email, password }) });
+        if(res.ok) { alert("Cadastro realizado!"); alternarAuth(false); }
+    }
+
+    async function comprarCartelas() {
+        const qtd = document.getElementById('qtdCartelas').value;
+        const res = await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
+        if(res.ok) { atualizarInterface(); } else { alert("Saldo insuficiente ou erro!"); }
+    }
 
     async function confirmarGerarPix() {
         const val = parseFloat(document.getElementById('valorInputManual').value);
@@ -172,73 +256,9 @@
         }
     }
 
-    function copiarCodigoPix() { navigator.clipboard.writeText(document.getElementById('pixCopiaCola').value).then(() => alert("Copiado!")); }
+    function copiarCodigoPix() { navigator.clipboard.writeText(document.getElementById('pixCopiaCola').value).then(() => alert("Código Copiado!")); }
 
-    function animarBolaSorteada(numeroReal) {
-        const bolaEl = document.getElementById('bolaGrande');
-        bolaEl.classList.add('girando');
-        let sorteioVisual = setInterval(() => { bolaEl.innerText = Math.floor(Math.random() * 50) + 1; }, 50);
-        setTimeout(() => {
-            clearInterval(sorteioVisual);
-            bolaEl.classList.remove('girando');
-            bolaEl.innerText = numeroReal;
-            ultimaBolaSorteada = numeroReal;
-        }, 1200);
-    }
-
-    async function atualizarInterface() {
-        if(!USER_ID) return;
-        try {
-            const resStatus = await fetch(`${API}/game-status`);
-            const jogo = await resStatus.json();
-            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
-            const user = await resUser.json();
-
-            // ATUALIZA NOME, SALDO E ID
-            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
-            document.getElementById('playerSaldo').innerText = `Saldo: R$ ${user.saldo.toFixed(2)}`;
-            document.getElementById('userIdDisplay').innerText = `ID: ${USER_ID}`;
-
-            const painel = document.getElementById('painelPremio');
-            if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') {
-                painel.innerHTML = `<div style="font-size:10px; font-weight:bold; color:#fff;">PRÊMIO</div><div class="valor-revelado">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
-            } else {
-                painel.innerHTML = `<div class="status-acumulando">ACUMULANDO...</div>`;
-            }
-
-            if (jogo.tempoSegundos !== undefined && Math.abs(segundosRestantes - jogo.tempoSegundos) > 2) {
-                segundosRestantes = jogo.tempoSegundos;
-            }
-
-            const bolas = jogo.bolas || [];
-            document.querySelectorAll('.num-check').forEach(el => el.className = 'num-check');
-            bolas.forEach((b, idx) => {
-                const el = document.getElementById(`num-${b}`);
-                if(el) { el.classList.add('ativo'); if(idx === bolas.length - 1) el.classList.add('ultimo'); }
-            });
-
-            if (bolas.length > 0) {
-                const novaBola = bolas[bolas.length - 1];
-                if (novaBola !== ultimaBolaSorteada) animarBolaSorteada(novaBola);
-            } else {
-                document.getElementById('bolaGrande').innerText = "--";
-                ultimaBolaSorteada = null;
-            }
-
-            document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => `
-                <div class="cartela">
-                    <div class="grid-cartela">${c.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
-                </div>
-            `).join('');
-        } catch(e) {}
-    }
-
-    function copiarID() {
-        if (USER_ID) {
-            navigator.clipboard.writeText(USER_ID).then(() => alert("ID copiado!"));
-        }
-    }
-
+    // --- TIMERS ---
     setInterval(() => {
         if (segundosRestantes > 0) {
             segundosRestantes--;
@@ -248,27 +268,7 @@
         }
     }, 1000);
 
-    async function fazerLogin() {
-        const email = document.getElementById('loginEmail').value;
-        const senha = document.getElementById('loginSenha').value;
-        const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email, senha }) });
-        if(res.ok) { const d = await res.json(); localStorage.setItem('userId', d.user._id); location.reload(); }
-    }
-
-    async function fazerCadastro() {
-        const name = document.getElementById('regNome').value;
-        const email = document.getElementById('regEmail').value;
-        const password = document.getElementById('regSenha').value;
-        await fetch(`${API}/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, email, password }) });
-        alert("Sucesso!"); alternarAuth(false);
-    }
-
-    async function comprarCartelas() {
-        const qtd = document.getElementById('qtdCartelas').value;
-        await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
-        atualizarInterface();
-    }
-
+    // --- INICIALIZAÇÃO ---
     if(USER_ID) {
         document.getElementById('telaAuth').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
