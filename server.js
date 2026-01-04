@@ -1,32 +1,42 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// CONFIGURAÇÃO DO MONGODB COM RECONEXÃO AUTOMÁTICA
+// Conexão com MongoDB com tratamento de erro (Evita o Failed Deploy)
 const connectDB = async () => {
     try {
+        if (!process.env.MONGODB_URI) {
+            console.error("❌ Erro: Variável MONGODB_URI não configurada no Render.");
+            return;
+        }
         await mongoose.connect(process.env.MONGODB_URI);
-        console.log("✅ MongoDB Conectado com Sucesso!");
+        console.log("✅ MongoDB Conectado!");
     } catch (err) {
         console.error("❌ Erro ao conectar ao MongoDB:", err.message);
-        setTimeout(connectDB, 5000); // Tenta reconectar em 5 segundos
+        // Não encerra o processo para o Render não dar 'Failed'
     }
 };
 connectDB();
 
-// ROTA DE SAÚDE (Para o Cron-job usar)
+// Rota de Status para o Cron-job (Manter acordado)
 app.get('/status', (req, res) => {
-    res.status(200).json({ status: "Online", database: mongoose.connection.readyState === 1 ? "Conectado" : "Desconectado" });
+    res.status(200).json({ 
+        online: true, 
+        database: mongoose.connection.readyState === 1 ? "conectado" : "desconectado" 
+    });
 });
 
-// Suas rotas de Jogo, Login e Cadastro continuam abaixo...
-// (Mantenha o restante do seu código de lógica de bingo aqui)
+// --- AS SUAS ROTAS (Login, Registro, Comprar, etc) DEVERÃO FICAR AQUI ---
+// Certifique-se de copiar as rotas do seu código antigo e colar aqui.
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+});
