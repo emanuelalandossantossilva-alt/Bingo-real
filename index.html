@@ -9,17 +9,20 @@
         html, body { overflow: hidden; height: 100%; position: fixed; width: 100%; font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; }
         .hidden { display: none !important; }
 
-        /* TELAS */
+        /* INTERFACE DE AUTH */
         #telaAuth { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         .auth-card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid var(--primary); width: 100%; max-width: 320px; }
 
-        /* COMPONENTES */
+        /* HEADER E STATUS */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; }
-        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; }
-        button { cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
+        .status-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; }
+        .status-val { font-size: 12px; font-weight: bold; }
 
-        /* MODAL CADASTRO */
+        /* ELEMENTOS */
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; }
+        button { cursor: pointer; border: none; border-radius: 6px; font-weight: bold; width: 100%; }
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        
         .num-c { font-size: 10px; background: #e2e8f0; padding: 4px 0; color: #1e293b; }
         .marcado { background: var(--success) !important; color: white !important; }
     </style>
@@ -31,32 +34,34 @@
         <h2 style="color:var(--primary); margin-bottom: 20px;">BINGO REAL</h2>
         <input type="email" id="emailLogin" placeholder="E-mail">
         <input type="password" id="senhaLogin" placeholder="Senha">
-        <button onclick="fazerLogin()" style="background:var(--success); width:100%; padding:12px; color:white; margin-bottom:10px;">ENTRAR</button>
-        <button onclick="abrirModal()" style="background:#334155; width:100%; padding:10px; color:white;">CRIAR CONTA GRÁTIS</button>
+        <button onclick="fazerLogin()" style="background:var(--success); color:white; margin-bottom:10px;">ENTRAR</button>
+        
+        <button onclick="abrirModal()" style="background:#334155; color:white; font-size:12px;">CRIAR CONTA GRÁTIS</button>
     </div>
 </div>
 
 <div id="modalReg" class="modal hidden">
     <div class="auth-card">
-        <h3 style="color:var(--primary);">NOVA CONTA</h3>
-        <input type="text" id="regNome" placeholder="Nome">
-        <input type="email" id="regEmail" placeholder="E-mail">
-        <input type="password" id="regSenha" placeholder="Senha">
-        <button onclick="fazerCadastro()" style="background:var(--success); color:white; width:100%; padding:12px; margin-bottom:10px;">CADASTRAR</button>
-        <button onclick="fecharModal()" style="background:transparent; color:#94a3b8; width:100%;">Voltar</button>
+        <h3 style="color:var(--primary); margin-top:0;">NOVA CONTA</h3>
+        <input type="text" id="regNome" placeholder="Seu Nome">
+        <input type="email" id="regEmail" placeholder="Seu E-mail">
+        <input type="password" id="regSenha" placeholder="Crie uma Senha">
+        <button onclick="fazerCadastro()" style="background:var(--success); color:white; margin-bottom:10px;">CADASTRAR AGORA</button>
+        <button onclick="fecharModal()" style="background:transparent; color:#94a3b8; font-size:12px;">Voltar ao Login</button>
     </div>
 </div>
 
 <div id="telaJogo" class="hidden">
     <div class="header">
         <div style="font-weight:bold; color:var(--primary);">BINGO REAL</div>
-        <button onclick="logout()" style="background:#450a0a; color:#f87171; padding:5px 10px; border: 1px solid #f87171;">SAIR</button>
+        <button onclick="logout()" style="background:#450a0a; color:#f87171; width:auto; padding:5px 10px; border: 1px solid #f87171;">SAIR</button>
     </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; background: #1e293b; padding: 10px;">
-        <div>Saldo: <b id="saldoTxt">R$ 0,00</b></div>
-        <div>Bola: <b id="bolaTxt">--</b></div>
+    <div class="status-bar">
+        <div><small>Saldo</small><br><b id="saldoTxt">R$ 0,00</b></div>
+        <div><small>Bola</small><br><b id="bolaTxt">--</b></div>
+        <div><button style="background:var(--success); color:white; padding:5px; margin-top:5px; font-size:10px;">PIX</button></div>
     </div>
-    <div id="listaCartelas" style="padding:15px; overflow-y:auto; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
+    <div id="listaCartelas" style="padding:15px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; overflow-y:auto; height:calc(100vh - 150px);"></div>
 </div>
 
 <script>
@@ -66,9 +71,9 @@
     function abrirModal() { document.getElementById('modalReg').classList.remove('hidden'); }
     function fecharModal() { document.getElementById('modalReg').classList.add('hidden'); }
 
-    // FUNÇÃO PARA SAIR DA CONTA
+    // FUNÇÃO PARA SAIR E LIMPAR CACHE
     function logout() {
-        if (confirm("Deseja sair?")) {
+        if (confirm("Deseja realmente sair?")) {
             localStorage.clear();
             sessionStorage.clear();
             window.location.reload();
@@ -79,6 +84,8 @@
         const name = document.getElementById('regNome').value;
         const email = document.getElementById('regEmail').value;
         const senha = document.getElementById('regSenha').value;
+        if(!name || !email || !senha) return alert("Preencha tudo!");
+
         try {
             const res = await fetch(`${API}/register`, {
                 method: 'POST',
@@ -86,8 +93,8 @@
                 body: JSON.stringify({ name, email, senha })
             });
             if(res.ok) { alert("Sucesso! Faça login."); fecharModal(); }
-            else { alert("Erro no cadastro."); }
-        } catch(e) { alert("Servidor carregando..."); }
+            else { alert("E-mail já cadastrado."); }
+        } catch(e) { alert("Conectando ao servidor..."); }
     }
 
     async function fazerLogin() {
@@ -103,8 +110,8 @@
             if(res.ok && data._id) {
                 localStorage.setItem('userId', data._id);
                 location.reload();
-            } else { alert("Dados inválidos."); }
-        } catch(e) { alert("Servidor carregando..."); }
+            } else { alert("Dados incorretos."); }
+        } catch(e) { alert("Servidor carregando... tente novamente."); } //
     }
 
     async function atualizar() {
@@ -115,6 +122,15 @@
             const user = await resU.json();
             document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
             if(jogo.bolas && jogo.bolas.length > 0) document.getElementById('bolaTxt').innerText = jogo.bolas[jogo.bolas.length-1];
+            
+            // Renderizar cartelas simples
+            document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => `
+                <div style="background:white; padding:5px; border-radius:4px; width:100px;">
+                    <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:1px;">
+                        ${c.map(n => `<div class="num-c ${jogo.bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}
+                    </div>
+                </div>
+            `).join('');
         } catch(e) {}
     }
 
