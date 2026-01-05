@@ -29,7 +29,7 @@
         <input type="password" id="senhaLogin" placeholder="Senha">
         <button id="btnEntrar" onclick="fazerLogin()" style="background:var(--success); width:100%; padding:12px; color:white; margin-bottom:10px;">ENTRAR</button>
         <button onclick="abrirModal()" style="background:#334155; width:100%; padding:10px; color:white; font-size:12px;">CRIAR CONTA GRÁTIS</button>
-        <p id="msgStatus" style="font-size: 12px; color: var(--primary); margin-top: 10px;"></p>
+        <p id="msgStatus" style="font-size: 12px; color: var(--primary); margin-top: 10px; min-height: 15px;"></p>
     </div>
 </div>
 
@@ -77,11 +77,13 @@
     async function fazerLogin() {
         const btn = document.getElementById('btnEntrar');
         const status = document.getElementById('msgStatus');
-        btn.disabled = true;
-        status.innerText = "Conectando ao servidor...";
-
         const email = document.getElementById('emailLogin').value;
         const senha = document.getElementById('senhaLogin').value;
+
+        if(!email || !senha) return alert("Preencha todos os campos!");
+
+        btn.disabled = true;
+        status.innerText = "A ligar ao servidor... aguarde.";
 
         try {
             const res = await fetch(`${API}/login`, {
@@ -89,19 +91,21 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ email, senha })
             });
+            
             const data = await res.json();
+
             if(res.ok && data._id) {
+                status.innerText = "Sucesso! A entrar...";
                 localStorage.setItem('userId', data._id);
-                location.reload();
+                setTimeout(() => { location.reload(); }, 500);
             } else { 
-                alert("Dados incorretos."); 
+                alert(data.message || "E-mail ou senha incorretos."); 
                 btn.disabled = false;
                 status.innerText = "";
             }
         } catch(e) { 
-            alert("O servidor está ligando. Tente novamente em 15 segundos."); 
-            btn.disabled = false;
-            status.innerText = "";
+            status.innerText = "Servidor a iniciar... a tentar novamente.";
+            setTimeout(fazerLogin, 3000); 
         }
     }
 
@@ -172,7 +176,6 @@
         } catch(e) {}
     }
 
-    // Inicialização correta
     window.onload = () => {
         if (USER_ID) {
             document.getElementById('telaJogo').classList.remove('hidden');
