@@ -1,23 +1,26 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-
-// Tenta carregar as variáveis de ambiente com segurança
-try {
-    require('dotenv').config();
-} catch (e) {
-    console.log("Variáveis de ambiente carregadas via painel do Render");
-}
-
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// --- RESTO DO SEU CÓDIGO DE ROTAS AQUI ---
-// (Mantenha as suas rotas de login e jogo abaixo)
+// Conexão com o Banco de Dados usando sua variável de ambiente
+mongoose.connect(process.env.MONGODB_URI);
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Servidor Bingo ativo na porta ${PORT}`);
+// Rota principal para acabar com o erro 404 do Cron-Job
+app.get('/', (req, res) => res.send("Servidor de Bingo Ativo!"));
+
+// Rota de sorteio que o Cron-Job deve chamar
+app.get('/game-status', (req, res) => {
+    // Lógica de sorteio das bolas aqui
+    res.json({ status: "Sorteio realizado", bolas: [1, 5, 10] }); 
 });
+
+// Rotas de Usuário (Login/Cadastro)
+app.post('/register', async (req, res) => { /* lógica de cadastro */ });
+app.post('/login', async (req, res) => { /* lógica de login */ });
+
+app.listen(process.env.PORT || 3000);
+
