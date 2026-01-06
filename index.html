@@ -2,108 +2,269 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerente - Bingo Real</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bingo Real - Oficial</title>
     <style>
-        body { font-family: sans-serif; background: #020617; color: white; padding: 20px; text-align: center; }
-        .card { background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid #facc15; margin-bottom: 20px; }
-        .btn-sorteio { background: #ef4444; color: white; font-size: 20px; padding: 20px; width: 100%; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
-        .bola-lista { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px; }
-        .bola-item { width: 30px; height: 30px; background: #facc15; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
-        input { width: 100%; max-width: 300px; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; }
-        .btn-acao { width: 100%; max-width: 300px; padding: 12px; background: #facc15; border: none; font-weight: bold; border-radius: 6px; cursor: pointer; color: #000; }
-        .user-row { background: #0f172a; padding: 10px; margin: 5px 0; display: flex; justify-content: space-between; border-radius: 5px; font-size: 13px; border-left: 4px solid #facc15; }
+        :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
+        
+        html, body { 
+            overflow: hidden; 
+            height: 100%; 
+            position: fixed; 
+            width: 100%;
+            font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; 
+        }
+        .hidden { display: none !important; }
+
+        /* NOTIFICAÇÃO PROFISSIONAL (TOAST) */
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95); color: var(--primary);
+            padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary);
+            font-size: 13px; font-weight: bold; z-index: 5000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: none; animation: fadeInOut 2s forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; top: 10px; }
+            15% { opacity: 1; top: 20px; }
+            85% { opacity: 1; top: 20px; }
+            100% { opacity: 0; top: 10px; }
+        }
+
+        /* HEADER */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; box-sizing: border-box; }
+        .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
+        .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
+
+        /* BARRA DE STATUS */
+        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; }
+        .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; }
+        .status-item:last-child { border-right: none; }
+        .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+        .status-val { font-size: 12px; font-weight: bold; }
+
+        .secao-fixa { background: var(--bg); z-index: 100; position: relative; }
+        .container-compra-topo { background: #0f172a; padding: 6px 12px; border-bottom: 1px solid #334155; display: flex; gap: 6px; align-items: center; justify-content: center; }
+        .input-compra { width: 50px !important; text-align: center; margin: 0 !important; padding: 6px !important; color: white; background: #020617; border: 1px solid #334155; border-radius: 4px; font-size: 14px; }
+        .btn-compra { flex: 1; max-width: 180px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; padding: 8px; font-size: 13px; }
+        .btn-copy-link { background: #334155; color: var(--primary); border: 1px solid var(--primary); padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 90%; max-width: 340px; margin: 10px auto; display: block; font-size: 11px; }
+
+        .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; box-sizing: border-box; }
+        .layout-jogo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 5px; }
+        .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
+        .girando { animation: girarBola 0.15s infinite linear; }
+        @keyframes girarBola { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
+        .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
+        .num-check.ativo { background: var(--success); color: white; }
+
+        .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 5px; min-height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; font-size: 14px; }
+        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .valor-revelado { color: #fff; font-size: 20px; font-weight: 900; }
+
+        /* AREA DE ROLAGEM */
+        #listaCartelas { 
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 15px 5px;
+            background: var(--bg); height: calc(100vh - 380px); overflow-y: auto; -webkit-overflow-scrolling: touch; 
+        }
+
+        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; height: fit-content; margin-bottom: 8px; }
+        .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
+        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 4px 0; display: flex; align-items: center; justify-content: center; }
+        .marcado { background: var(--success) !important; color: white !important; }
+
+        /* MODAIS */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
+        .btn-valor { padding: 8px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; font-size: 12px; margin: 2px; }
+        input { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; font-size: 14px; }
     </style>
 </head>
 <body>
-    <h2 style="color:#facc15">🎰 CONTROLE DO BINGO</h2>
 
-    <div class="card">
-        <button class="btn-sorteio" onclick="sortearBola()">SORTEAR BOLA 🔵</button>
-        <div id="ultimaBola" style="font-size: 40px; font-weight: bold; color: #facc15;">--</div>
-        <p>Bolas Sorteadas:</p>
-        <div id="listaBolas" class="bola-lista"></div>
-        <button onclick="resetarJogo()" style="margin-top: 20px; background: none; border: 1px solid #ef4444; color: #ef4444; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Resetar Bingo</button>
+<div id="toast">Copiado com sucesso!</div>
+
+<div id="telaJogo">
+    <div class="secao-fixa">
+        <div class="header">
+            <button class="menu-btn" onclick="toggleMenu()"><div></div><div></div><div></div></button>
+            <div style="font-weight:bold; color:var(--primary); font-size:14px;">BINGO REAL</div>
+            <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; font-size:12px; cursor:pointer;">PIX</button>
+        </div>
+
+        <div class="status-bar-topo">
+            <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val" style="color:var(--primary);">05:00</span></div>
+            <div class="status-item"><span class="status-label">Saldo</span><span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
+            <div class="status-item" onclick="copiarID()" style="cursor:pointer;"><span class="status-label">Meu ID</span><span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span></div>
+        </div>
+
+        <div id="menuLateral" class="hidden" style="position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; z-index: 2000; text-align: left;">
+            <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">Carregando...</div>
+            <div class="menu-item" onclick="logout()" style="padding:12px; color:#ef4444; font-weight:bold; cursor:pointer;">🚪 Sair da Conta</div>
+        </div>
+
+        <button class="btn-copy-link" onclick="copiarLinkJogo()">🔗 COPIAR LINK DO BINGO</button>
+
+        <div class="container-compra-topo">
+            <input type="number" id="qtdCartelas" value="1" min="1" class="input-compra">
+            <button onclick="comprarCartelas()" class="btn-compra">COMPRAR CARTELA</button>
+        </div>
+
+        <div class="card">
+            <div class="caixa-premio" id="painelPremio"><div class="status-acumulando">ACUMULANDO...</div></div>
+            <div class="layout-jogo">
+                <div id="bolaGrande" class="bola-sorteada-master">--</div>
+                <div class="painel-numeros" id="gradeNumeros"></div>
+            </div>
+        </div>
+        <div style="background: #0f172a; padding: 5px; font-size: 11px; color: var(--primary); font-weight: bold; border-bottom: 1px solid #334155;">MINHAS CARTELAS</div>
     </div>
 
-    <div class="card">
-        <h3>👥 JOGADORES & SALDO</h3>
-        <button onclick="carregarJogadores()" class="btn-acao" style="background:#22c55e; color:white;">🔄 ATUALIZAR LISTA</button>
-        <div id="listaJogadores" style="margin-top:15px; text-align: left;"></div>
-    </div>
+    <div id="listaCartelas"></div>
+</div>
 
-    <div class="card">
-        <h3>💰 ADICIONAR CRÉDITO</h3>
-        <input type="text" id="idUser" placeholder="Cole o ID do Jogador aqui">
-        <input type="number" id="valorCredito" placeholder="Valor R$">
-        <button onclick="addSaldo()" class="btn-acao">CONFIRMAR SALDO</button>
+<div id="modalValor" class="modal hidden">
+    <div class="modal-content">
+        <h4 style="margin:0 0 10px 0;">DEPOSITAR</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 10px;">
+            <button class="btn-valor" onclick="setValor(10)">R$ 10</button>
+            <button class="btn-valor" onclick="setValor(20)">R$ 20</button>
+            <button class="btn-valor" onclick="setValor(50)">R$ 50</button>
+        </div>
+        <input type="number" id="valorInputManual" placeholder="Mín. R$ 10" style="color:black; background:#eee;">
+        <button onclick="confirmarGerarPix()" style="background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">GERAR PIX</button>
+        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:8px; border:none; background:none; color:#666; font-size:12px; cursor:pointer;">Cancelar</button>
     </div>
+</div>
+
+<div id="modalPix" class="modal hidden">
+    <div class="modal-content">
+        <h4 style="margin:0;">PAGAMENTO PIX</h4>
+        <img id="qrImagem" style="width:180px; margin:10px 0;" src="">
+        <input type="text" id="pixCopiaCola" readonly style="display:none;">
+        <button class="btn-compra" style="width:100%" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
+        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red; cursor:pointer;">Fechar</button>
+    </div>
+</div>
 
 <script>
     const API = "https://bingo-backend-89dt.onrender.com";
+    let USER_ID = localStorage.getItem('userId');
+    let segundosRestantes = 0;
+    let ultimaBolaSorteada = null;
 
-    // FUNÇÃO PARA SORTEAR BOLA
-    async function sortearBola() {
-        try {
-            const res = await fetch(`${API}/admin/draw`, { method: 'POST' });
-            const data = await res.json();
-            document.getElementById('ultimaBola').innerText = data.bola;
-            atualizarPainel();
-        } catch(e) { alert("Erro ao sortear. Verifique o servidor."); }
+    // FUNÇÃO PARA MOSTRAR A MENSAGEM PROFISSIONAL
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 2000);
     }
 
-    // CARREGAR JOGADORES DO BANCO
-    async function carregarJogadores() {
-        const div = document.getElementById('listaJogadores');
-        div.innerText = "Carregando jogadores...";
+    function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
+    function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
+    function setValor(v) { document.getElementById('valorInputManual').value = v; }
+    
+    function copiarLinkJogo() { 
+        navigator.clipboard.writeText(window.location.href).then(() => showToast("Link copiado!")); 
+    }
+    function copiarID() { 
+        if (USER_ID) navigator.clipboard.writeText(USER_ID).then(() => showToast("ID copiado!")); 
+    }
+    function copiarCodigoPix() { 
+        navigator.clipboard.writeText(document.getElementById('pixCopiaCola').value).then(() => showToast("Código PIX copiado!")); 
+    }
+
+    function logout() { localStorage.clear(); location.reload(); }
+
+    function iniciarGrade() {
+        const grade = document.getElementById('gradeNumeros');
+        grade.innerHTML = '';
+        for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check" id="num-${i}">${i}</div>`;
+    }
+
+    async function atualizarInterface() {
+        if(!USER_ID) return;
         try {
-            const res = await fetch(`${API}/admin/users`);
-            const users = await res.json();
-            div.innerHTML = users.map(u => `
-                <div class="user-row">
-                    <span><b>${u.name}</b></span>
-                    <span style="color:#22c55e">R$ ${u.saldo.toFixed(2)}</span>
-                    <code onclick="copy('${u._id}')" style="cursor:pointer; color:#94a3b8; font-size:10px;">${u._id.substring(0,8)}...</code>
+            const resStatus = await fetch(`${API}/game-status`);
+            const jogo = await resStatus.json();
+            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
+            const user = await resUser.json();
+
+            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
+            document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
+            document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8) + "...";
+
+            const painel = document.getElementById('painelPremio');
+            if (jogo.fase === 'sorteio' || jogo.fase === 'finalizado') {
+                painel.innerHTML = `<div style="font-size:10px; font-weight:bold; color:#fff;">PRÊMIO</div><div class="valor-revelado">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
+            } else {
+                painel.innerHTML = `<div class="status-acumulando">ACUMULANDO...</div>`;
+            }
+
+            if (jogo.tempoSegundos !== undefined) segundosRestantes = jogo.tempoSegundos;
+
+            const bolas = jogo.bolas || [];
+            if (bolas.length > 0) {
+                const novaBola = bolas[bolas.length - 1];
+                if (novaBola !== ultimaBolaSorteada) {
+                    const bolaEl = document.getElementById('bolaGrande');
+                    bolaEl.classList.add('girando');
+                    setTimeout(() => {
+                        bolaEl.classList.remove('girando');
+                        bolaEl.innerText = novaBola;
+                        ultimaBolaSorteada = novaBola;
+                    }, 1200);
+                }
+            }
+
+            document.querySelectorAll('.num-check').forEach(el => el.classList.remove('ativo'));
+            bolas.forEach(b => document.getElementById(`num-${b}`)?.classList.add('ativo'));
+
+            document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => `
+                <div class="cartela">
+                    <div class="grid-cartela">${c.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
                 </div>
             `).join('');
-        } catch(e) { div.innerText = "Erro ao carregar lista."; }
+        } catch(e) {}
     }
 
-    // ADICIONAR SALDO
-    async function addSaldo() {
-        const userId = document.getElementById('idUser').value;
-        const valor = document.getElementById('valorCredito').value;
-        if(!userId || !valor) return alert("Preencha o ID e o Valor!");
-
-        try {
-            const res = await fetch(`${API}/admin/add-saldo`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId, valor: parseFloat(valor) })
-            });
-            if(res.ok) { alert("Saldo Adicionado!"); carregarJogadores(); }
-            else { alert("Erro ao adicionar saldo."); }
-        } catch(e) { alert("Erro de conexão."); }
-    }
-
-    function copy(id) { navigator.clipboard.writeText(id); alert("ID Copiado!"); }
-
-    async function atualizarPainel() {
-        const res = await fetch(`${API}/game-status`);
+    async function confirmarGerarPix() {
+        const val = parseFloat(document.getElementById('valorInputManual').value);
+        if (!val || val < 10) return alert("Mínimo R$ 10");
+        const res = await fetch(`${API}/gerar-pix`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: USER_ID, valor: val }) });
         const data = await res.json();
-        const lista = document.getElementById('listaBolas');
-        lista.innerHTML = data.bolasSorteadas.map(b => `<div class="bola-item">${b}</div>`).join('');
-    }
-
-    async function resetarJogo() {
-        if(confirm("Deseja apagar todas as bolas sorteadas?")) {
-            await fetch(`${API}/admin/reset`, { method: 'POST' });
-            location.reload();
+        if (data.qr_code_base64) {
+            document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
+            document.getElementById('pixCopiaCola').value = data.qr_code;
+            document.getElementById('modalValor').classList.add('hidden');
+            document.getElementById('modalPix').classList.remove('hidden');
         }
     }
 
-    setInterval(atualizarPainel, 3000);
-    carregarJogadores();
+    async function comprarCartelas() {
+        const qtd = document.getElementById('qtdCartelas').value;
+        await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
+        atualizarInterface();
+    }
+
+    setInterval(() => {
+        if (segundosRestantes > 0) {
+            segundosRestantes--;
+            const min = Math.floor(segundosRestantes / 60);
+            const seg = segundosRestantes % 60;
+            document.getElementById('timerTxt').innerText = `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
+        }
+    }, 1000);
+
+    if(USER_ID) {
+        iniciarGrade();
+        atualizarInterface();
+        setInterval(atualizarInterface, 3000);
+    }
 </script>
 </body>
 </html>
