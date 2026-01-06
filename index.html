@@ -6,83 +6,84 @@
     <title>Bingo Real - Oficial</title>
     <style>
         :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
-        html, body { overflow: hidden; height: 100%; position: fixed; width: 100%; font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; }
+        html, body { overflow: hidden; height: 100%; position: fixed; width: 100%; font-family: sans-serif; background: var(--bg); color: white; margin: 0; padding: 0; }
         .hidden { display: none !important; }
         
-        /* AUTH SCREENS */
+        /* TELAS DE ACESSO */
         .auth-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: radial-gradient(circle, #1e293b 0%, #020617 100%); }
-        .auth-card { background: #0f172a; padding: 30px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 320px; }
+        .auth-card { background: #0f172a; padding: 30px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 320px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         .auth-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; }
-        .btn-auth { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; text-transform: uppercase; }
+        .btn-auth { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: var(--primary); color: #000; text-transform: uppercase; }
 
-        /* GAME UI */
+        /* INTERFACE DO JOGO */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; }
-        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; }
-        .status-item { border-right: 1px solid #334155; }
-        .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
-        .status-val { font-size: 12px; font-weight: bold; }
-        
-        .card-principal { background: var(--card); border: 1px solid var(--primary); border-radius: 12px; margin: 5px 10px; padding: 12px; display: flex; align-items: center; gap: 12px; }
-        .bola-sorteada-master { width: 75px; height: 75px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: #000; border: 2px solid #78350f; }
-        .painel-numeros { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #0f172a; padding: 5px; border-radius: 6px; flex: 1; }
-        .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
+        .card-principal { background: var(--card); border: 1px solid var(--primary); border-radius: 12px; margin: 10px; padding: 15px; display: flex; align-items: center; gap: 15px; }
+        .bola-sorteada-master { width: 80px; height: 80px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; font-weight: 900; color: #000; border: 3px solid #78350f; }
+        .painel-numeros { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: #0f172a; padding: 8px; border-radius: 8px; flex: 1; }
+        .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 3px; }
         .num-check.ativo { background: var(--success); color: white; }
 
-        #listaCartelas { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 15px 5px; height: calc(100vh - 400px); overflow-y: auto; }
-        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; }
-        .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
-        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 4px 0; }
-        .marcado { background: var(--success) !important; color: white !important; }
-
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #0f172a; color: var(--primary); padding: 12px; border-radius: 50px; border: 1px solid var(--primary); display: none; z-index: 5000; }
+        /* MODAL PIX */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; color: black; padding: 20px; border-radius: 15px; width: 90%; max-width: 300px; text-align: center; }
+        .pix-btn { background: #eee; border: 1px solid #ccc; padding: 10px; margin: 5px; width: 80px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="toast"></div>
-
 <div id="telaLogin" class="auth-screen">
     <div class="auth-card">
-        <h2 style="color:var(--primary)">BINGO REAL</h2>
-        <input type="email" id="emailLogin" class="auth-input" placeholder="E-mail">
-        <input type="password" id="senhaLogin" class="auth-input" placeholder="Senha">
-        <button onclick="fazerLogin()" class="btn-auth" style="background:var(--primary)">Entrar</button>
-        <p style="font-size:12px; margin-top:15px;">Não tem conta? <a href="#" onclick="mudarTela('registro')" style="color:var(--primary)">Cadastre-se</a></p>
+        <h2 style="color:var(--primary); margin-top:0;">BINGO REAL</h2>
+        <input type="email" id="emailLogin" class="auth-input" placeholder="Seu E-mail">
+        <input type="password" id="senhaLogin" class="auth-input" placeholder="Sua Senha">
+        <button onclick="fazerLogin()" class="btn-auth" id="btnLogin">Entrar</button>
+        <p style="font-size:12px; margin-top:15px; color:#94a3b8;">Novo aqui? <a href="#" onclick="mudarTela('registro')" style="color:var(--primary); text-decoration:none;">Criar Conta</a></p>
     </div>
 </div>
 
 <div id="telaRegistro" class="auth-screen hidden">
     <div class="auth-card">
-        <h2 style="color:var(--success)">CADASTRO</h2>
-        <input type="text" id="nomeReg" class="auth-input" placeholder="Nome">
+        <h2 style="color:var(--success); margin-top:0;">CADASTRO</h2>
+        <input type="text" id="nomeReg" class="auth-input" placeholder="Nome Completo">
         <input type="email" id="emailReg" class="auth-input" placeholder="E-mail">
-        <input type="password" id="senhaReg" class="auth-input" placeholder="Senha">
-        <button onclick="fazerCadastro()" class="btn-auth" style="background:var(--success); color:white">Criar Conta</button>
-        <p style="font-size:12px; margin-top:15px;">Já tem conta? <a href="#" onclick="mudarTela('login')" style="color:var(--success)">Login</a></p>
+        <input type="password" id="senhaReg" class="auth-input" placeholder="Crie uma Senha">
+        <button onclick="fazerCadastro()" class="btn-auth" style="background:var(--success); color:white">Finalizar Cadastro</button>
+        <p style="font-size:12px; margin-top:15px; color:#94a3b8;">Já tem conta? <a href="#" onclick="mudarTela('login')" style="color:var(--success); text-decoration:none;">Fazer Login</a></p>
     </div>
 </div>
 
 <div id="telaJogo" class="hidden">
     <div class="header">
-        <button onclick="logout()" style="background:none; border:none; color:white;">🚪</button>
+        <button onclick="logout()" style="background:none; border:none; font-size:20px; cursor:pointer; color:white;">🚪</button>
         <div style="font-weight:bold; color:var(--primary);">BINGO REAL</div>
-        <button onclick="alert('Abra o modal de PIX')" style="background:var(--success); color:white; border:none; padding:5px 10px; border-radius:4px;">PIX</button>
+        <button onclick="abrirPix()" style="background:var(--success); color:white; border:none; padding:6px 15px; border-radius:6px; font-weight:bold; cursor:pointer;">PIX</button>
     </div>
-    <div class="status-bar-topo">
-        <div class="status-item"><span class="status-label">Tempo</span><br><span id="timerTxt" class="status-val">05:00</span></div>
-        <div class="status-item"><span class="status-label">Saldo</span><br><span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
-        <div class="status-item"><span class="status-label">Meu ID</span><br><span id="userIdDisplay" class="status-val">...</span></div>
-    </div>
+    
     <div class="card-principal">
         <div class="bola-sorteada-master" id="bolaGrande">--</div>
         <div class="painel-numeros" id="gradeNumeros"></div>
     </div>
-    <div style="background:#0f172a; padding:5px; font-size:11px; color:var(--primary);">MINHAS CARTELAS</div>
-    <div id="listaCartelas"></div>
+    
+    <div style="background:#0f172a; padding:8px; font-size:12px; color:var(--primary); font-weight:bold; text-transform:uppercase;">Minhas Cartelas</div>
+    <div id="listaCartelas" style="padding:10px; overflow-y:auto; height:calc(100vh - 250px);"></div>
+</div>
+
+<div id="modalPix" class="modal hidden">
+    <div class="modal-content">
+        <h3 style="margin-top:0;">DEPOSITAR</h3>
+        <div>
+            <button class="pix-btn" onclick="setPix(10)">R$ 10</button>
+            <button class="pix-btn" onclick="setPix(20)">R$ 20</button>
+            <button class="pix-btn" onclick="setPix(50)">R$ 50</button>
+        </div>
+        <input type="number" id="valorPix" style="width:100%; padding:10px; margin:10px 0; border:1px solid #ccc; border-radius:5px; text-align:center;" value="10">
+        <button onclick="alert('Sistema de PIX em manutenção')" style="width:100%; padding:12px; background:var(--success); color:white; border:none; border-radius:8px; font-weight:bold;">GERAR PIX</button>
+        <p onclick="abrirPix()" style="margin-top:10px; font-size:12px; color:red; cursor:pointer;">Cancelar</p>
+    </div>
 </div>
 
 <script>
-    const API = "https://bingo-backend-89dt.onrender.com";
+    const API = "https://bingo-backend-89dt.onrender.com"; //
     let USER_ID = localStorage.getItem('userId');
 
     function mudarTela(t) {
@@ -91,37 +92,68 @@
         document.getElementById(t === 'login' ? 'telaLogin' : 'telaRegistro').classList.remove('hidden');
     }
 
+    function abrirPix() { document.getElementById('modalPix').classList.toggle('hidden'); }
+    function setPix(v) { document.getElementById('valorPix').value = v; }
+
     async function fazerLogin() {
         const email = document.getElementById('emailLogin').value;
         const senha = document.getElementById('senhaLogin').value;
-        const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email, senha }) });
-        const data = await res.json();
-        if(res.ok) { localStorage.setItem('userId', data._id); location.reload(); }
-        else alert(data.message);
+        const btn = document.getElementById('btnLogin');
+
+        if(!email || !senha) return alert("Preencha os campos!");
+
+        try {
+            btn.innerText = "CONECTANDO...";
+            const res = await fetch(`${API}/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email, senha })
+            });
+
+            if (res.status === 502 || res.status === 503) {
+                alert("O servidor está acordando no Render. Tente novamente em 20 segundos."); //
+                btn.innerText = "ENTRAR";
+                return;
+            }
+
+            const data = await res.json();
+            if(res.ok) {
+                localStorage.setItem('userId', data._id);
+                location.reload();
+            } else {
+                alert(data.message || "E-mail ou senha incorretos");
+                btn.innerText = "ENTRAR";
+            }
+        } catch(e) {
+            alert("Erro de conexão. Verifique se o servidor está online.");
+            btn.innerText = "ENTRAR";
+        }
     }
 
     async function fazerCadastro() {
         const name = document.getElementById('nomeReg').value;
         const email = document.getElementById('emailReg').value;
         const senha = document.getElementById('senhaReg').value;
-        const res = await fetch(`${API}/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, email, senha }) });
-        if(res.ok) { alert("Cadastrado!"); mudarTela('login'); }
+        try {
+            const res = await fetch(`${API}/register`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name, email, senha })
+            });
+            if(res.ok) { alert("Cadastro realizado!"); mudarTela('login'); }
+            else { const d = await res.json(); alert(d.message); }
+        } catch(e) { alert("Erro ao cadastrar."); }
     }
 
     function logout() { localStorage.clear(); location.reload(); }
 
-    function iniciarGrade() {
-        const g = document.getElementById('gradeNumeros');
-        g.innerHTML = '';
-        for (let i = 1; i <= 50; i++) g.innerHTML += `<div class="num-check" id="num-${i}">${i}</div>`;
-    }
-
     if(USER_ID) {
         document.getElementById('telaLogin').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
-        iniciarGrade();
-        // Aqui você chamaria sua função de atualizarInterface() repetidamente
+        const g = document.getElementById('gradeNumeros');
+        for (let i = 1; i <= 50; i++) g.innerHTML += `<div class="num-check" id="num-${i}">${i}</div>`;
     }
 </script>
 </body>
 </html>
+
