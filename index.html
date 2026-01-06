@@ -3,84 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Real</title>
+    <title>Gerente - Bingo Real</title>
     <style>
-        body { font-family: sans-serif; background: #020617; color: white; text-align: center; padding: 20px; }
-        .auth-card { background: #0f172a; padding: 20px; border: 1px solid #facc15; border-radius: 10px; max-width: 300px; margin: auto; }
-        input { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
-        button { width: 95%; padding: 10px; background: #facc15; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        .hidden { display: none; }
+        body { font-family: sans-serif; background: #020617; color: white; padding: 20px; text-align: center; }
+        .card { background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid #facc15; margin-bottom: 20px; }
+        .btn-sorteio { background: #ef4444; color: white; font-size: 20px; padding: 20px; width: 100%; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+        .bola-lista { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px; }
+        .bola-item { width: 30px; height: 30px; background: #facc15; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
+        input { width: 100%; max-width: 300px; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; }
+        .btn-acao { width: 100%; max-width: 300px; padding: 12px; background: #facc15; border: none; font-weight: bold; border-radius: 6px; cursor: pointer; color: #000; }
+        .user-row { background: #0f172a; padding: 10px; margin: 5px 0; display: flex; justify-content: space-between; border-radius: 5px; font-size: 13px; border-left: 4px solid #facc15; }
     </style>
 </head>
 <body>
+    <h2 style="color:#facc15">🎰 CONTROLE DO BINGO</h2>
 
-<div id="telaLogin">
-    <div class="auth-card">
-        <h2>BINGO REAL</h2>
-        <input type="email" id="emailLogin" placeholder="E-mail">
-        <input type="password" id="senhaLogin" placeholder="Senha">
-        <button onclick="fazerLogin()" id="btnLogin">ENTRAR</button>
-        <p onclick="mudarTela('registro')" style="cursor:pointer; color:#facc15">Criar Conta</p>
+    <div class="card">
+        <button class="btn-sorteio" onclick="sortearBola()">SORTEAR BOLA 🔵</button>
+        <div id="ultimaBola" style="font-size: 40px; font-weight: bold; color: #facc15;">--</div>
+        <p>Bolas Sorteadas:</p>
+        <div id="listaBolas" class="bola-lista"></div>
+        <button onclick="resetarJogo()" style="margin-top: 20px; background: none; border: 1px solid #ef4444; color: #ef4444; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Resetar Bingo</button>
     </div>
-</div>
 
-<div id="telaRegistro" class="hidden">
-    <div class="auth-card">
-        <h2>CADASTRO</h2>
-        <input type="text" id="nomeReg" placeholder="Nome">
-        <input type="email" id="emailReg" placeholder="E-mail">
-        <input type="password" id="senhaReg" placeholder="Senha">
-        <button onclick="fazerCadastro()" id="btnReg">CADASTRAR</button>
-        <p onclick="mudarTela('login')" style="cursor:pointer; color:#facc15">Voltar ao Login</p>
+    <div class="card">
+        <h3>👥 JOGADORES & SALDO</h3>
+        <button onclick="carregarJogadores()" class="btn-acao" style="background:#22c55e; color:white;">🔄 ATUALIZAR LISTA</button>
+        <div id="listaJogadores" style="margin-top:15px; text-align: left;"></div>
     </div>
-</div>
+
+    <div class="card">
+        <h3>💰 ADICIONAR CRÉDITO</h3>
+        <input type="text" id="idUser" placeholder="Cole o ID do Jogador aqui">
+        <input type="number" id="valorCredito" placeholder="Valor R$">
+        <button onclick="addSaldo()" class="btn-acao">CONFIRMAR SALDO</button>
+    </div>
 
 <script>
-    const API = "https://bingo-backend-89dt.onrender.com"; // Sua URL do Render
+    const API = "https://bingo-backend-89dt.onrender.com";
 
-    function mudarTela(t) {
-        document.getElementById('telaLogin').classList.toggle('hidden', t === 'registro');
-        document.getElementById('telaRegistro').classList.toggle('hidden', t === 'login');
+    // FUNÇÃO PARA SORTEAR BOLA
+    async function sortearBola() {
+        try {
+            const res = await fetch(`${API}/admin/draw`, { method: 'POST' });
+            const data = await res.json();
+            document.getElementById('ultimaBola').innerText = data.bola;
+            atualizarPainel();
+        } catch(e) { alert("Erro ao sortear. Verifique o servidor."); }
     }
 
-    async function fazerCadastro() {
-        const name = document.getElementById('nomeReg').value;
-        const email = document.getElementById('emailReg').value;
-        const senha = document.getElementById('senhaReg').value;
-        const btn = document.getElementById('btnReg');
+    // CARREGAR JOGADORES DO BANCO
+    async function carregarJogadores() {
+        const div = document.getElementById('listaJogadores');
+        div.innerText = "Carregando jogadores...";
+        try {
+            const res = await fetch(`${API}/admin/users`);
+            const users = await res.json();
+            div.innerHTML = users.map(u => `
+                <div class="user-row">
+                    <span><b>${u.name}</b></span>
+                    <span style="color:#22c55e">R$ ${u.saldo.toFixed(2)}</span>
+                    <code onclick="copy('${u._id}')" style="cursor:pointer; color:#94a3b8; font-size:10px;">${u._id.substring(0,8)}...</code>
+                </div>
+            `).join('');
+        } catch(e) { div.innerText = "Erro ao carregar lista."; }
+    }
+
+    // ADICIONAR SALDO
+    async function addSaldo() {
+        const userId = document.getElementById('idUser').value;
+        const valor = document.getElementById('valorCredito').value;
+        if(!userId || !valor) return alert("Preencha o ID e o Valor!");
 
         try {
-            btn.innerText = "PROCESSANDO...";
-            const res = await fetch(`${API}/register`, {
+            const res = await fetch(`${API}/admin/add-saldo`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, senha })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId, valor: parseFloat(valor) })
             });
-            const data = await res.json();
-            if (res.ok) { alert("Cadastro Ok!"); mudarTela('login'); }
-            else { alert(data.message); }
-        } catch (e) { alert("O servidor está acordando. Tente de novo em 20 segundos."); }
-        finally { btn.innerText = "CADASTRAR"; }
+            if(res.ok) { alert("Saldo Adicionado!"); carregarJogadores(); }
+            else { alert("Erro ao adicionar saldo."); }
+        } catch(e) { alert("Erro de conexão."); }
     }
 
-    async function fazerLogin() {
-        const email = document.getElementById('emailLogin').value;
-        const senha = document.getElementById('senhaLogin').value;
-        const btn = document.getElementById('btnLogin');
+    function copy(id) { navigator.clipboard.writeText(id); alert("ID Copiado!"); }
 
-        try {
-            btn.innerText = "ENTRANDO...";
-            const res = await fetch(`${API}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, senha })
-            });
-            const data = await res.json();
-            if (res.ok) { localStorage.setItem('userId', data._id); alert("Logado!"); location.reload(); }
-            else { alert(data.message); }
-        } catch (e) { alert("Erro de conexão com o servidor."); }
-        finally { btn.innerText = "ENTRAR"; }
+    async function atualizarPainel() {
+        const res = await fetch(`${API}/game-status`);
+        const data = await res.json();
+        const lista = document.getElementById('listaBolas');
+        lista.innerHTML = data.bolasSorteadas.map(b => `<div class="bola-item">${b}</div>`).join('');
     }
+
+    async function resetarJogo() {
+        if(confirm("Deseja apagar todas as bolas sorteadas?")) {
+            await fetch(`${API}/admin/reset`, { method: 'POST' });
+            location.reload();
+        }
+    }
+
+    setInterval(atualizarPainel, 3000);
+    carregarJogadores();
 </script>
 </body>
 </html>
